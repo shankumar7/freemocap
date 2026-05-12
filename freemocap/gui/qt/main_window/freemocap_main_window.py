@@ -61,6 +61,7 @@ from freemocap.gui.qt.widgets.home_widget import (
     HomeWidget,
 )
 from freemocap.gui.qt.widgets.import_videos_wizard import ImportVideosWizard
+from freemocap.gui.qt.widgets.live_capture_widget import LiveCaptureWidget
 from freemocap.gui.qt.widgets.log_view_widget import LogViewWidget
 from freemocap.gui.qt.widgets.opencv_conflict_dialog import OpencvConflictDialog
 from freemocap.gui.qt.widgets.release_notes_dialogs.tabbed_release_notes_dialog import TabbedReleaseNotesDialog
@@ -201,10 +202,9 @@ class MainWindow(QMainWindow):
 
     def launch_live_motion_capture(self):
         logger.info("Launching live motion capture inside the Cameras tab")
-        self._central_tab_widget.set_camera_view_tab_enabled(True)
-        self._central_tab_widget.setCurrentIndex(1)
-        self._controller_group_box.show()
-        self._skellycam_widget.detect_available_cameras()
+        self._central_tab_widget.set_live_capture_tab_enabled(True)
+        self._central_tab_widget.setCurrentIndex(2)
+        self._live_capture_widget.start_capture()
 
     def update(self):
         super().update()
@@ -231,10 +231,11 @@ class MainWindow(QMainWindow):
 
     def _create_central_tab_widget(self):
         self._home_widget = HomeWidget(actions=self._actions, gui_state=self._gui_state, parent=self)
+        self._live_capture_widget = LiveCaptureWidget(camera_index=0, parent=self)
 
         self._skellycam_widget = SkellyCamWidget(
             self._create_new_synchronized_videos_folder,
-            live_motion_capture=True,
+            live_motion_capture=False,
             parent=self,
         )
         self._skellycam_widget.videos_saved_to_this_folder_signal.connect(
@@ -253,12 +254,14 @@ class MainWindow(QMainWindow):
             camera_controller_widget=self._controller_group_box,
             welcome_to_freemocap_widget=self._home_widget,
             skelly_viewer_widget=self._skelly_viewer_widget,
+            live_capture_widget=self._live_capture_widget,
             directory_view_widget=self._directory_view_widget,
             active_recording_info_widget=self._active_recording_info_widget,
         )
 
         center_tab_widget.set_welcome_tab_enabled(True)
         center_tab_widget.set_camera_view_tab_enabled(True)
+        center_tab_widget.set_live_capture_tab_enabled(True)
         center_tab_widget.set_visualize_data_tab_enabled(True)
 
         return center_tab_widget

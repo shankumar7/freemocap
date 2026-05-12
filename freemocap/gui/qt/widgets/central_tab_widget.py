@@ -9,6 +9,7 @@ from skellycam import SkellyCamWidget
 from freemocap.gui.qt.widgets.home_widget import (
     HomeWidget,
 )
+from freemocap.gui.qt.widgets.live_capture_widget import LiveCaptureWidget
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +21,7 @@ class CentralTabWidget(QTabWidget):
         camera_controller_widget: QWidget,
         welcome_to_freemocap_widget: HomeWidget,
         skelly_viewer_widget: QWidget,
+        live_capture_widget: LiveCaptureWidget,
         directory_view_widget: QWidget,
         active_recording_info_widget: QWidget,
         parent=None,
@@ -33,11 +35,13 @@ class CentralTabWidget(QTabWidget):
         self._camera_controller_widget = camera_controller_widget
         self._welcome_to_freemocap_widget = welcome_to_freemocap_widget
         self._skelly_viewer_widget = skelly_viewer_widget
+        self._live_capture_widget = live_capture_widget
         self._directory_view_widget = directory_view_widget
         self._active_recording_info_widget = active_recording_info_widget
 
         self._create_welcome_tab(self)
         self._create_skellycam_view_tab(self)
+        self._create_live_capture_tab(self)
         self._create_skelly_viewer_tab(self)
         self._create_directory_view_tab(self)
         self._create_active_recording_info_tab(self)
@@ -48,8 +52,11 @@ class CentralTabWidget(QTabWidget):
     def set_camera_view_tab_enabled(self, enabled: bool):
         self.setTabEnabled(1, enabled)
 
-    def set_visualize_data_tab_enabled(self, enabled: bool):
+    def set_live_capture_tab_enabled(self, enabled: bool):
         self.setTabEnabled(2, enabled)
+
+    def set_visualize_data_tab_enabled(self, enabled: bool):
+        self.setTabEnabled(3, enabled)
 
     def _create_welcome_tab(self, tab_widget: QTabWidget):
         logger.debug("Creating welcome tab")
@@ -79,6 +86,10 @@ class CentralTabWidget(QTabWidget):
         layout.setAlignment(Qt.AlignmentFlag.AlignBottom)
         self._camera_view_layout.addLayout(layout)
         self._camera_view_layout.setContentsMargins(20, 0, 20, 0)
+
+    def _create_live_capture_tab(self, tab_widget: QTabWidget):
+        logger.debug("Creating live capture tab")
+        tab_widget.addTab(self._live_capture_widget, "Live Capture")
 
     def _create_skelly_viewer_tab(self, tab_widget: QTabWidget):
         logger.debug("Creating export_data tab")

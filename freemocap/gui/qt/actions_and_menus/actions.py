@@ -8,6 +8,7 @@ from freemocap.system.paths_and_filenames.file_and_folder_names import (
 from freemocap.utilities.download_sample_data import DATASETS
 
 CREATE_NEW_RECORDING_ACTION_NAME = "New Recording"
+LIVE_MOTION_CAPTURE_ACTION_NAME = "Live Motion Capture"
 LOAD_MOST_RECENT_RECORDING_ACTION_NAME = "Load Most Recent Recording"
 LOAD_RECORDING_ACTION_NAME = "Load Recording"
 IMPORT_VIDEOS_ACTION_NAME = "Import Videos"
@@ -29,6 +30,10 @@ class Actions:
         self.create_new_recording_action = QAction(CREATE_NEW_RECORDING_ACTION_NAME, parent=freemocap_main_window)
         self.create_new_recording_action.setShortcut("Ctrl+N")
         self.create_new_recording_action.triggered.connect(freemocap_main_window.handle_start_new_session_action)
+
+        self.live_motion_capture_action = QAction(LIVE_MOTION_CAPTURE_ACTION_NAME, parent=freemocap_main_window)
+        self.live_motion_capture_action.setShortcut("Ctrl+L")
+        self.live_motion_capture_action.triggered.connect(freemocap_main_window.launch_live_motion_capture)
 
         self.load_most_recent_recording_action = QAction(
             LOAD_MOST_RECENT_RECORDING_ACTION_NAME, parent=freemocap_main_window

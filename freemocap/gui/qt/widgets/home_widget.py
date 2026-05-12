@@ -16,6 +16,7 @@ from packaging import version
 import freemocap
 from freemocap.gui.qt.actions_and_menus.actions import (
     CREATE_NEW_RECORDING_ACTION_NAME,
+    LIVE_MOTION_CAPTURE_ACTION_NAME,
     LOAD_RECORDING_ACTION_NAME,
     IMPORT_VIDEOS_ACTION_NAME,
     Actions,
@@ -55,10 +56,20 @@ class HomeWidget(QWidget):
         self._welcome_to_freemocap_title_widget = self._welcome_to_freemocap_title()
         self._layout.addWidget(self._welcome_to_freemocap_title_widget)
 
+        self._new_session_buttons_layout = QHBoxLayout()
+        self._new_session_buttons_layout.addStretch(1)
+
         self._create_new_session_button = WelcomeScreenButton(f"{CREATE_NEW_RECORDING_ACTION_NAME}")
         self._create_new_session_button.clicked.connect(actions.create_new_recording_action.trigger)
-        self._layout.addWidget(self._create_new_session_button, alignment=Qt.AlignmentFlag.AlignCenter)
         self._create_new_session_button.setProperty("recommended_next", True)
+        self._new_session_buttons_layout.addWidget(self._create_new_session_button)
+
+        self._live_motion_capture_button = WelcomeScreenButton(f"{LIVE_MOTION_CAPTURE_ACTION_NAME}")
+        self._live_motion_capture_button.clicked.connect(actions.live_motion_capture_action.trigger)
+        self._new_session_buttons_layout.addWidget(self._live_motion_capture_button)
+
+        self._new_session_buttons_layout.addStretch(1)
+        self._layout.addLayout(self._new_session_buttons_layout)
 
         self._load_existing_session_button = WelcomeScreenButton(f"{LOAD_RECORDING_ACTION_NAME}")
         self._load_existing_session_button.clicked.connect(actions.load_existing_recording_action.trigger)

@@ -199,6 +199,13 @@ class MainWindow(QMainWindow):
         self._controller_group_box.show()
         self._skellycam_widget.detect_available_cameras()
 
+    def launch_live_motion_capture(self):
+        logger.info("Launching live motion capture inside the Cameras tab")
+        self._central_tab_widget.set_camera_view_tab_enabled(True)
+        self._central_tab_widget.setCurrentIndex(1)
+        self._controller_group_box.show()
+        self._skellycam_widget.detect_available_cameras()
+
     def update(self):
         super().update()
 
@@ -227,6 +234,7 @@ class MainWindow(QMainWindow):
 
         self._skellycam_widget = SkellyCamWidget(
             self._create_new_synchronized_videos_folder,
+            live_motion_capture=True,
             parent=self,
         )
         self._skellycam_widget.videos_saved_to_this_folder_signal.connect(

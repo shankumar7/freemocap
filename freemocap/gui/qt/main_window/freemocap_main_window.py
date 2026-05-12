@@ -201,7 +201,7 @@ class MainWindow(QMainWindow):
         self._skellycam_widget.detect_available_cameras()
 
     def launch_live_motion_capture(self):
-        logger.info("Launching live motion capture inside the Cameras tab")
+        logger.info("Launching live motion capture inside the Live Capture tab")
         self._central_tab_widget.set_live_capture_tab_enabled(True)
         self._central_tab_widget.setCurrentIndex(2)
         self._live_capture_widget.start_capture()
@@ -414,7 +414,7 @@ class MainWindow(QMainWindow):
             return
 
         self._active_recording_info_widget.set_active_recording(recording_folder_path=get_most_recent_recording_path())
-        self._central_tab_widget.setCurrentIndex(2)
+        self._central_tab_widget.setCurrentIndex(3)
         self._control_panel_widget.tab_widget.setCurrentWidget(self._process_motion_capture_data_panel)
 
     def open_load_existing_recording_dialog(self):
@@ -432,7 +432,7 @@ class MainWindow(QMainWindow):
         logger.info(f"User selected recording path:{user_selected_directory}")
 
         self._active_recording_info_widget.set_active_recording(recording_folder_path=user_selected_directory)
-        self._central_tab_widget.setCurrentIndex(2)
+        self._central_tab_widget.setCurrentIndex(3)
 
     def reset_to_default_gui_settings(self):
         self._gui_state = GuiState()

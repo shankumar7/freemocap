@@ -67,13 +67,13 @@ class LiveCaptureThread(QThread):
     def _camera_loop(self, cap, mp_drawing):
         previous_frame_time = time.time()
         while self._running:
+            frame_start_time = time.time()
             ret, frame = cap.read()
             if not ret:
                 self.status_message.emit("Failed to read frame from camera")
                 break
 
             frame = cv2.flip(frame, 1)
-            working_frame = frame
 
             if self._pose_worker is not None:
                 rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -96,7 +96,7 @@ class LiveCaptureThread(QThread):
             fps = 1.0 / max(current_frame_time - previous_frame_time, 1e-6)
             previous_frame_time = current_frame_time
 
-            latency_ms = (time.time() - current_frame_time) * 1000.0
+            latency_ms = (time.time() - frame_start_time) * 1000.0
             cv2.putText(
                 frame,
                 f"FPS: {fps:.1f}  Latency: {latency_ms:.1f} ms",

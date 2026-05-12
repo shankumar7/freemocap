@@ -1,0 +1,85 @@
+Live Motion-Capture (Real-Time) — Abstract Plan
+
+Summary
+- Goal: Extend the project to support live, low-latency motion capture from cameras to real-time pose estimation, visualization, and optional export/streaming.
+- Scope: Real-time camera ingestion, pose estimation (Mediapipe / TensorFlow/Keras model), smoothing + skeleton processing, UI live view, export to FBX/BVH and streaming via WebSocket.
+
+Provided dependency shortlist (to install into a dedicated venv):
+- numpy
+- pandas
+- keras
+- tensorflow
+- h5py
+- protobuf
+- imutils
+- opencv-python
+- opencv-contrib-python
+- scikit-learn
+- matplotlib
+- mediapipe
+- nltk
+
+Assumptions
+- Target platforms: Windows (primary), Linux (secondary).
+- GPU optional: TensorFlow GPU available where needed.
+- Existing codebase provides data saving and export helpers (used for non-real-time processing).
+
+High-level milestones
+1) Requirements & architecture (current) — define latency target, supported cameras, and output formats.
+2) Input pipeline — camera capture module using OpenCV; abstract camera interface supporting webcams and RTSP.
+3) Real-time pose estimator — evaluate `mediapipe` vs TF/Keras model; choose for accuracy+speed; provide fallback CPU-only path.
+4) Processing pipeline — buffering, timestamping, smoothing (exponential / Kalman), bone constraints and scaling.
+5) Visualization/UI — add a live preview view (Qt/PySide6) or lightweight OpenGL viewer; controls for start/stop, framerate.
+6) Export & streaming — save `.blend`/`.fbx`/`.bvh` on demand; add WebSocket server endpoint for live pose streaming (JSON or protobuf).
+7) Performance & tuning — batch sizes, model quantization, GPU offload, multi-threading or process pool for inference.
+8) Testing & instrumentation — latency benchmarks, unit tests, end-to-end capture -> viewer tests.
+9) Packaging & docs — update `pyproject.toml`, provide `requirements.txt`, user docs and quickstart.
+
+Implementation notes / suggestions
+- Use a producer-consumer pattern: capture thread -> inference worker(s) -> post-process -> UI/streamer.
+- Keep inference and I/O in separate processes to avoid GIL contention; use multiprocessing queues when needed.
+- Timestamp frames at capture; propagate timestamps with pose outputs to measure latency.
+- Provide a config file (TOML/JSON) controlling model choice, device (CPU/GPU), smoothing params, and export paths.
+- For low-latency: prefer Mediapipe (fast C++/python bindings) for body/hand/face; fallback TF model when custom networks needed.
+
+Setup / quick commands (PowerShell)
+1) Create & activate venv (or conda)
+
+```powershell
+python -m venv freemocap-live-env
+.\freemocap-live-env\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+```
+
+2) Install dependencies (example)
+
+```powershell
+pip install numpy pandas keras tensorflow h5py protobuf imutils opencv-python opencv-contrib-python scikit-learn matplotlib mediapipe nltk
+```
+
+3) Run the GUI / launcher
+
+```powershell
+# if installed as package
+freemocap
+# or from source
+python -m freemocap
+```
+
+Risk & mitigations
+- Latency too high: profile and move inference to GPU or to a separate process; reduce frame rate or resolution.
+- Multiple OpenCV builds conflict: ensure only `opencv-contrib-python==4.8.1.78` is installed (you already fixed this).
+- Blender add-on compatibility for auto-open: make auto-open optional; always write files to recording folder.
+
+Estimated effort (rough)
+- Research & architecture: 1–2 days
+- Capture + inference integration + smoothing: 3–5 days
+- UI integration & streaming: 2–4 days
+- Testing, profiling, packaging: 2–3 days
+
+Next immediate actions (first sprint)
+- Pick inference backend (Mediapipe vs TF) and create a minimal capture->pose->display proof-of-concept.
+- Add configuration entry and record/log timestamps to measure baseline latency.
+
+Contact / Notes
+- I used the dependency list you provided. I can start implementing the POC capture->mediapipe pipeline next if you want — shall I proceed?

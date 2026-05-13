@@ -8,15 +8,19 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from military_drill_ai.utils.config import config
 from military_drill_ai.detection.yolo_detector import YOLODetector
+from military_drill_ai.tracking.byte_tracker import Tracker
 
-def run_stage_1(video_source: str = "0"):
+def run_pipeline(video_source: str = "0"):
     """
-    Test Stage 1: YOLOv8 Multi-person Detection
+    Test Pipeline
     """
     print("Initializing YOLO Detector (Stage 1)...")
     detector = YOLODetector(model_path=config.YOLO_MODEL_PATH, 
                             conf=config.DETECTION_CONFIDENCE,
                             classes=config.DETECTION_CLASSES)
+                            
+    print("Initializing ByteTracker (Stage 2)...")
+    tracker = Tracker(detector)
     
     # If source is an integer string, use it as camera index
     if video_source.isdigit():
@@ -33,13 +37,13 @@ def run_stage_1(video_source: str = "0"):
         if not ret:
             break
             
-        # Run detection
-        detections = detector.detect(frame)
+        # Run tracking (includes detection)
+        tracks = tracker.track_frame(frame)
         
-        # Draw bounding boxes
-        frame_out = detector.draw_detections(frame, detections)
+        # Draw tracking bounding boxes
+        frame_out = tracker.draw_tracks(frame, tracks)
         
-        cv2.imshow("Stage 1 - Detection Test", frame_out)
+        cv2.imshow("Military Drill AI Pipeline - Live", frame_out)
         
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
@@ -52,4 +56,4 @@ if __name__ == "__main__":
     parser.add_argument("--source", type=str, default="0", help="Video source (0 for webcam, or path to video file)")
     args = parser.parse_args()
     
-    run_stage_1(args.source)
+    run_pipeline(args.source)

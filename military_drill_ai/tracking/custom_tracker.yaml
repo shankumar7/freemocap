@@ -6,7 +6,7 @@ track_buffer: 600
 match_thresh: 0.8
 fuse_score: True
 
-gmc_method: sparseOptFlow
+gmc_method: none
 proximity_thresh: 0.5
 appearance_thresh: 0.8
 with_reid: False # (bool) Enable ReID model use; needs extra model and compute

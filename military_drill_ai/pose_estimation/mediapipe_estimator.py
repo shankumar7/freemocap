@@ -64,6 +64,7 @@ class MediaPipeEstimator:
             results = tracker.process(masked_frame)
             
             # Extract landmarks for Analytics Engine
+            cadet_posture = {}
             if results.pose_landmarks:
                 def get_px(landmark):
                     if not landmark or getattr(landmark, 'visibility', 0) < 0.3:
@@ -82,6 +83,22 @@ class MediaPipeEstimator:
                     'left_ankle': get_px(landmarks[mp_pose.PoseLandmark.LEFT_ANKLE]),
                     'right_ankle': get_px(landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE])
                 }
+                
+            if results.pose_world_landmarks:
+                def get_3d(landmark):
+                    if not landmark or getattr(landmark, 'visibility', 0) < 0.3:
+                        return None
+                    return (landmark.x, landmark.y, landmark.z)
+                    
+                world_landmarks = results.pose_world_landmarks.landmark
+                cadet_posture['world_nose'] = get_3d(world_landmarks[mp_pose.PoseLandmark.NOSE])
+                cadet_posture['world_right_shoulder'] = get_3d(world_landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER])
+                cadet_posture['world_right_elbow'] = get_3d(world_landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW])
+                cadet_posture['world_right_wrist'] = get_3d(world_landmarks[mp_pose.PoseLandmark.RIGHT_WRIST])
+                cadet_posture['world_left_ankle'] = get_3d(world_landmarks[mp_pose.PoseLandmark.LEFT_ANKLE])
+                cadet_posture['world_right_ankle'] = get_3d(world_landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE])
+                
+            if cadet_posture:
                 posture_data[cadet_id] = cadet_posture
             
             # Draw using Native MediaPipe Utilities for flawless rendering

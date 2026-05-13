@@ -9,5 +9,5 @@ fuse_score: True
 gmc_method: none
 proximity_thresh: 0.5
 appearance_thresh: 0.8
-with_reid: False # (bool) Enable ReID model use; needs extra model and compute
+with_reid: True # (bool) Enable ReID model use; needs extra model and compute
 model: auto # (str) ReID model name/path; "auto" uses detector features if available

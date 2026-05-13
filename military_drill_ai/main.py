@@ -9,6 +9,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from military_drill_ai.utils.config import config
 from military_drill_ai.detection.yolo_detector import YOLODetector
 from military_drill_ai.tracking.byte_tracker import Tracker
+from military_drill_ai.pose_estimation.rtmpose_estimator import RTMPoseEstimator
 
 def run_pipeline(video_source: str = "0"):
     """
@@ -21,6 +22,9 @@ def run_pipeline(video_source: str = "0"):
                             
     print("Initializing ByteTracker (Stage 2)...")
     tracker = Tracker(detector)
+    
+    print("Initializing RTMPose-M (Stage 3)...")
+    pose_estimator = RTMPoseEstimator()
     
     # If source is an integer string, use it as camera index
     if video_source.isdigit():
@@ -40,8 +44,15 @@ def run_pipeline(video_source: str = "0"):
         # Run tracking (includes detection)
         tracks = tracker.track_frame(frame)
         
+        # Run Pose Estimation (Top-Down on Bboxes)
+        poses = pose_estimator.estimate_pose(frame, tracks)
+        
         # Draw tracking bounding boxes
         frame_out = tracker.draw_tracks(frame, tracks)
+        
+        # Draw skeletons
+        if poses:
+            frame_out = pose_estimator.draw_skeletons(frame_out, poses)
         
         cv2.imshow("Military Drill AI Pipeline - Live", frame_out)
         

@@ -10,6 +10,7 @@ from military_drill_ai.detection.yolo_detector import YOLODetector
 from military_drill_ai.tracking.byte_tracker import Tracker
 
 from military_drill_ai.pose_estimation.mediapipe_estimator import MediaPipeEstimator
+from military_drill_ai.analytics.posture_analyzer import PostureAnalyzer
 
 def run_pipeline(video_source: str = "0"):
     """
@@ -25,6 +26,9 @@ def run_pipeline(video_source: str = "0"):
     
     print("Initializing MediaPipe Holistic (Stage 3)...")
     pose_estimator = MediaPipeEstimator()
+    
+    print("Initializing Posture Analyzer (Stage 4)...")
+    analyzer = PostureAnalyzer()
     
     # If source is an integer string, use it as camera index
     if video_source.isdigit():
@@ -48,7 +52,10 @@ def run_pipeline(video_source: str = "0"):
         frame_out = tracker.draw_tracks(frame, tracks)
         
         # Run Full Body & Finger Estimation on the tracked boxes
-        frame_out = pose_estimator.estimate_and_draw(frame_out, tracks)
+        frame_out, posture_data = pose_estimator.estimate_and_draw(frame_out, tracks)
+        
+        # Run Analytics Engine (Height & Salute Angle)
+        frame_out = analyzer.analyze_and_draw(frame_out, posture_data, tracks)
         
         cv2.imshow("Military Drill AI Pipeline - Live", frame_out)
         

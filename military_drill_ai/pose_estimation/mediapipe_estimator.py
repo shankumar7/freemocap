@@ -15,12 +15,12 @@ class MediaPipeEstimator:
         if cadet_id not in self.trackers:
             self.trackers[cadet_id] = self.mp_holistic.Holistic(
                 static_image_mode=False, # False allows temporal smoothing
-                model_complexity=0, # 0 = Lite model for much faster multi-person CPU tracking
+                model_complexity=1,
                 smooth_landmarks=True,
                 enable_segmentation=False,
                 refine_face_landmarks=False,
-                min_detection_confidence=0.3, # Lowered to allow partial body recognition
-                min_tracking_confidence=0.3   # Lowered to allow partial body recognition
+                min_detection_confidence=0.5,
+                min_tracking_confidence=0.5
             )
         return self.trackers[cadet_id]
 
@@ -34,6 +34,9 @@ class MediaPipeEstimator:
         
         # Keep track of active IDs to clean up old trackers and save memory
         active_ids = set()
+        
+        # Posture data to send to the Analytics Engine
+        posture_data = {}
         
         for track in tracks:
             x1, y1, x2, y2, conf, cls, cadet_id = track
@@ -69,6 +72,26 @@ class MediaPipeEstimator:
             
             crop_h, crop_w, _ = crop.shape
             
+            # Extract landmarks for Analytics Engine
+            if results.pose_landmarks:
+                def get_px(landmark):
+                    if not landmark or getattr(landmark, 'visibility', 0) < 0.3:
+                        return None
+                    return (int(landmark.x * crop_w) + crop_x1, int(landmark.y * crop_h) + crop_y1)
+                
+                landmarks = results.pose_landmarks.landmark
+                mp_pose = mp.solutions.pose
+                
+                cadet_posture = {
+                    'nose': get_px(landmarks[mp_pose.PoseLandmark.NOSE]),
+                    'right_shoulder': get_px(landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER]),
+                    'right_elbow': get_px(landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW]),
+                    'right_wrist': get_px(landmarks[mp_pose.PoseLandmark.RIGHT_WRIST]),
+                    'left_ankle': get_px(landmarks[mp_pose.PoseLandmark.LEFT_ANKLE]),
+                    'right_ankle': get_px(landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE])
+                }
+                posture_data[cadet_id] = cadet_posture
+            
             # Draw offset landmarks
             self._draw_offset_landmarks(out_frame, results.pose_landmarks, self.mp_holistic.POSE_CONNECTIONS, crop_x1, crop_y1, crop_w, crop_h, is_hand=False)
             self._draw_offset_landmarks(out_frame, results.left_hand_landmarks, self.mp_holistic.HAND_CONNECTIONS, crop_x1, crop_y1, crop_w, crop_h, is_hand=True)
@@ -80,7 +103,7 @@ class MediaPipeEstimator:
             self.trackers[d_id].close()
             del self.trackers[d_id]
             
-        return out_frame
+        return out_frame, posture_data
 
     def _draw_offset_landmarks(self, frame, landmark_list, connections, offset_x, offset_y, crop_w, crop_h, is_hand=False):
         if not landmark_list:

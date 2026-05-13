@@ -9,17 +9,22 @@ from military_drill_ai.utils.config import config
 from military_drill_ai.detection.yolo_detector import YOLODetector
 from military_drill_ai.tracking.byte_tracker import Tracker
 
+from military_drill_ai.pose_estimation.mediapipe_estimator import MediaPipeEstimator
+
 def run_pipeline(video_source: str = "0"):
     """
     Test Pipeline
     """
-    print("Initializing YOLO Detector & Pose (Stage 1 & 3)...")
+    print("Initializing YOLO Detector (Stage 1)...")
     detector = YOLODetector(model_path=config.YOLO_MODEL_PATH, 
                             conf=config.DETECTION_CONFIDENCE,
                             classes=config.DETECTION_CLASSES)
                             
     print("Initializing ByteTracker (Stage 2)...")
     tracker = Tracker(detector)
+    
+    print("Initializing MediaPipe Holistic (Stage 3)...")
+    pose_estimator = MediaPipeEstimator()
     
     # If source is an integer string, use it as camera index
     if video_source.isdigit():
@@ -36,11 +41,14 @@ def run_pipeline(video_source: str = "0"):
         if not ret:
             break
             
-        # Run tracking and pose estimation combined natively
+        # Run tracking (includes detection)
         tracks = tracker.track_frame(frame)
         
-        # Draw tracking bounding boxes and skeletons
+        # Draw tracking bounding boxes
         frame_out = tracker.draw_tracks(frame, tracks)
+        
+        # Run Full Body & Finger Estimation on the tracked boxes
+        frame_out = pose_estimator.estimate_and_draw(frame_out, tracks)
         
         cv2.imshow("Military Drill AI Pipeline - Live", frame_out)
         

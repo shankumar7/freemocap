@@ -1,0 +1,12 @@
+torch>=2.1.0
+torchvision
+torchaudio
+ultralytics
+opencv-python
+fastapi
+uvicorn
+streamlit
+pandas
+numpy
+pytest
+pydantic

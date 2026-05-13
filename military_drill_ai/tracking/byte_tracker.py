@@ -14,11 +14,14 @@ class Tracker:
         Runs detection and tracking using ByteTrack.
         Returns a list of tracks: [x1, y1, x2, y2, conf, cls, track_id]
         """
+        import os
+        custom_tracker_path = os.path.join(os.path.dirname(__file__), "custom_tracker.yaml")
+        
         results = self.detector.model.track(
             frame, 
             conf=self.detector.conf, 
             classes=self.detector.classes, 
-            tracker="bytetrack.yaml", 
+            tracker=custom_tracker_path,  # Use our custom config with 600 frame buffer
             persist=True, 
             verbose=False
         )

@@ -1,42 +1,46 @@
 import math
 import cv2
+from military_drill_ai.utils.config import config
 
 class PostureAnalyzer:
     def __init__(self):
         """
-        Initializes the Posture Analytics Engine using True 3D World Landmarks.
+        Initializes the Posture Analytics Engine.
+        Uses a Hybrid Approach:
+        - 3D Real-World Depth for Height (Invariant to Camera Distance)
+        - 2D Visual Perspective for Salute Angle (Matches physical ruler references)
         """
         pass
 
-    def calculate_3d_angle(self, p1, p2, p3):
+    def calculate_2d_angle(self, p1, p2, p3):
         """
-        Calculates the 3D interior angle between three points (p2 is the vertex).
-        Points are tuples of (x, y, z) in meters.
+        Calculates the 2D visual interior angle exactly as seen from the camera's perspective.
         """
         if not (p1 and p2 and p3):
             return None
             
-        v1 = (p1[0] - p2[0], p1[1] - p2[1], p1[2] - p2[2])
-        v2 = (p3[0] - p2[0], p3[1] - p2[1], p3[2] - p2[2])
+        x1, y1 = p1
+        x2, y2 = p2
+        x3, y3 = p3
         
-        dot = v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2]
-        mag1 = math.sqrt(v1[0]**2 + v1[1]**2 + v1[2]**2)
-        mag2 = math.sqrt(v2[0]**2 + v2[1]**2 + v2[2]**2)
-        
-        if mag1 == 0 or mag2 == 0:
-            return None
+        angle = math.degrees(math.atan2(y3 - y2, x3 - x2) - math.atan2(y1 - y2, x1 - x2))
+        angle = abs(angle)
+        if angle > 180.0:
+            angle = 360.0 - angle
             
-        cos_theta = max(min(dot / (mag1 * mag2), 1.0), -1.0)
-        return math.degrees(math.acos(cos_theta))
+        return angle
 
     def calculate_3d_distance(self, p1, p2):
+        """
+        Calculates absolute metric distance using MediaPipe's intrinsic depth network.
+        """
         if not (p1 and p2):
             return None
         return math.sqrt((p2[0]-p1[0])**2 + (p2[1]-p1[1])**2 + (p2[2]-p1[2])**2)
 
     def analyze_and_draw(self, frame, posture_data, tracks):
         """
-        Calculates true real-world height and 3D salute angle.
+        Calculates hybrid metrics and draws them on the frame.
         """
         out_frame = frame.copy()
         
@@ -48,49 +52,45 @@ class PostureAnalyzer:
             data = posture_data[cadet_id]
             metrics = []
             
-            # 1. Calculate Real-World Height using 3D World Landmarks (in meters)
-            w_nose = data.get('world_nose')
-            w_l_ankle = data.get('world_left_ankle')
-            w_r_ankle = data.get('world_right_ankle')
+            # 1. DEPTH-INVARIANT HEIGHT & CALIBRATED 2D HEIGHT
+            # Using 2D pixels so the physical 15cm scale calibration takes effect
+            nose = data.get('nose')
+            l_ankle = data.get('left_ankle')
+            r_ankle = data.get('right_ankle')
             
-            if w_nose and (w_l_ankle or w_r_ankle):
-                dist_l = self.calculate_3d_distance(w_nose, w_l_ankle)
-                dist_r = self.calculate_3d_distance(w_nose, w_r_ankle)
+            if nose and (l_ankle or r_ankle):
+                ankles_y = []
+                if l_ankle: ankles_y.append(l_ankle[1])
+                if r_ankle: ankles_y.append(r_ankle[1])
                 
-                dists = []
-                if dist_l: dists.append(dist_l)
-                if dist_r: dists.append(dist_r)
+                avg_ankle_y = sum(ankles_y) / len(ankles_y)
+                height_px = avg_ankle_y - nose[1]
                 
-                avg_body_length_m = sum(dists) / len(dists)
+                # Convert using the live calibrated PIXELS_PER_FOOT
+                if config.PIXELS_PER_FOOT > 0:
+                    height_in_feet = height_px / config.PIXELS_PER_FOOT
+                    feet = int(height_in_feet)
+                    inches = int((height_in_feet - feet) * 12)
+                    metrics.append(f"Calibrated Height: {feet}'{inches}\"")
+                else:
+                    metrics.append(f"Height: {int(height_px)}px (Uncalibrated)")
                 
-                # Add 0.15 meters (~6 inches) to account for top of head (above nose) 
-                # and bottom of foot (below ankle)
-                total_height_m = avg_body_length_m + 0.15 
-                
-                # Convert meters to feet
-                height_in_feet = total_height_m * 3.28084
-                feet = int(height_in_feet)
-                inches = int((height_in_feet - feet) * 12)
-                
-                metrics.append(f"Height: {feet}'{inches}\"")
-                
-            # 2. Calculate true 3D Salute Angle
-            w_r_shoulder = data.get('world_right_shoulder')
-            w_r_elbow = data.get('world_right_elbow')
-            w_r_wrist = data.get('world_right_wrist')
+            # 2. VISUAL SALUTE ANGLE (Using 2D Pixels to match the 15cm physical ruler)
+            r_shoulder = data.get('right_shoulder')
+            r_elbow = data.get('right_elbow')
+            r_wrist = data.get('right_wrist')
             
-            if w_r_shoulder and w_r_elbow and w_r_wrist:
-                elbow_angle = self.calculate_3d_angle(w_r_shoulder, w_r_elbow, w_r_wrist)
+            if r_shoulder and r_elbow and r_wrist:
+                elbow_angle = self.calculate_2d_angle(r_shoulder, r_elbow, r_wrist)
                 
                 if elbow_angle is not None:
-                    metrics.append(f"3D Salute Angle: {int(elbow_angle)} deg")
+                    # Append exact visual angle to metrics
+                    metrics.append(f"Visual Angle: {int(elbow_angle)} deg")
                     
-                    # Draw on 2D screen using 2D elbow coordinate
-                    r_elbow_2d = data.get('right_elbow')
-                    if r_elbow_2d:
-                        cv2.putText(out_frame, f"{int(elbow_angle)}", 
-                                    (r_elbow_2d[0] + 15, r_elbow_2d[1]), 
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+                    # Draw visual arc around the elbow
+                    cv2.putText(out_frame, f"{int(elbow_angle)}", 
+                                (r_elbow[0] + 15, r_elbow[1]), 
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
                                 
             # Draw all metrics slightly above the bounding box
             y_offset = max(y1 - 30, 0)

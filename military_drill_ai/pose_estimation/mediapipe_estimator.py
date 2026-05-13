@@ -91,10 +91,8 @@ class MediaPipeEstimator:
                     return (landmark.x, landmark.y, landmark.z)
                     
                 world_landmarks = results.pose_world_landmarks.landmark
+                mp_pose = mp.solutions.pose
                 cadet_posture['world_nose'] = get_3d(world_landmarks[mp_pose.PoseLandmark.NOSE])
-                cadet_posture['world_right_shoulder'] = get_3d(world_landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER])
-                cadet_posture['world_right_elbow'] = get_3d(world_landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW])
-                cadet_posture['world_right_wrist'] = get_3d(world_landmarks[mp_pose.PoseLandmark.RIGHT_WRIST])
                 cadet_posture['world_left_ankle'] = get_3d(world_landmarks[mp_pose.PoseLandmark.LEFT_ANKLE])
                 cadet_posture['world_right_ankle'] = get_3d(world_landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE])
                 

@@ -52,28 +52,30 @@ class PostureAnalyzer:
             data = posture_data[cadet_id]
             metrics = []
             
-            # 1. DEPTH-INVARIANT HEIGHT & CALIBRATED 2D HEIGHT
-            # Using 2D pixels so the physical 15cm scale calibration takes effect
-            nose = data.get('nose')
-            l_ankle = data.get('left_ankle')
-            r_ankle = data.get('right_ankle')
+            # 1. DEPTH-INVARIANT HEIGHT (Anchored to 15cm Scale Calibration)
+            w_nose = data.get('world_nose')
+            w_l_ankle = data.get('world_left_ankle')
+            w_r_ankle = data.get('world_right_ankle')
             
-            if nose and (l_ankle or r_ankle):
-                ankles_y = []
-                if l_ankle: ankles_y.append(l_ankle[1])
-                if r_ankle: ankles_y.append(r_ankle[1])
+            if w_nose and (w_l_ankle or w_r_ankle):
+                dist_l = self.calculate_3d_distance(w_nose, w_l_ankle) if w_l_ankle else 0
+                dist_r = self.calculate_3d_distance(w_nose, w_r_ankle) if w_r_ankle else 0
+                dists = [d for d in [dist_l, dist_r] if d > 0]
                 
-                avg_ankle_y = sum(ankles_y) / len(ankles_y)
-                height_px = avg_ankle_y - nose[1]
+                avg_body_length_m = sum(dists) / len(dists)
+                total_world_height_m = avg_body_length_m + 0.15
                 
-                # Convert using the live calibrated PIXELS_PER_FOOT
-                if config.PIXELS_PER_FOOT > 0:
-                    height_in_feet = height_px / config.PIXELS_PER_FOOT
+                # Apply the interactive 3D Anchor Ratio if calibrated
+                if hasattr(config, 'WORLD_TO_REAL_RATIO') and config.WORLD_TO_REAL_RATIO > 0:
+                    height_in_feet = total_world_height_m * config.WORLD_TO_REAL_RATIO
                     feet = int(height_in_feet)
                     inches = int((height_in_feet - feet) * 12)
-                    metrics.append(f"Calibrated Height: {feet}'{inches}\"")
+                    metrics.append(f"Calibrated 3D Height: {feet}'{inches}\"")
                 else:
-                    metrics.append(f"Height: {int(height_px)}px (Uncalibrated)")
+                    height_in_feet = total_world_height_m * 3.28084
+                    feet = int(height_in_feet)
+                    inches = int((height_in_feet - feet) * 12)
+                    metrics.append(f"True 3D Height: {feet}'{inches}\" (Uncalibrated)")
                 
             # 2. VISUAL SALUTE ANGLE (Using 2D Pixels to match the 15cm physical ruler)
             r_shoulder = data.get('right_shoulder')

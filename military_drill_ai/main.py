@@ -75,12 +75,38 @@ def run_pipeline(video_source: str = "0"):
             p2 = click_data['clicks'][1]
             
             pixel_dist = math.sqrt((p2[0]-p1[0])**2 + (p2[1]-p1[1])**2)
-            if pixel_dist > 0:
-                # User clicked 15cm. So 15cm = pixel_dist. 
-                # 1 foot = 30.48 cm.
+            if pixel_dist > 0 and len(posture_data) > 0:
+                # 1. Calculate the 2D Pixels per foot using the 15cm scale
                 pixels_per_foot = pixel_dist * (30.48 / 15.0)
-                config.PIXELS_PER_FOOT = pixels_per_foot
-                print(f"SUCCESS: Calibrated! 15cm scale = {int(pixel_dist)}px. Height is now locked.")
+                
+                # 2. Grab the first visible cadet to anchor their 3D height
+                cadet_id = list(posture_data.keys())[0]
+                data = posture_data[cadet_id]
+                
+                nose = data.get('nose')
+                l_ankle = data.get('left_ankle')
+                r_ankle = data.get('right_ankle')
+                w_nose = data.get('world_nose')
+                w_l_ankle = data.get('world_left_ankle')
+                w_r_ankle = data.get('world_right_ankle')
+                
+                if nose and (l_ankle or r_ankle) and w_nose and (w_l_ankle or w_r_ankle):
+                    # Get their 2D pixel height
+                    ankles_y = [a[1] for a in [l_ankle, r_ankle] if a]
+                    height_px = (sum(ankles_y) / len(ankles_y)) - nose[1]
+                    
+                    # Calculate their actual true height in feet based on the scale
+                    calibrated_height_feet = height_px / pixels_per_foot
+                    
+                    # Get their uncalibrated 3D depth-invariant height
+                    dist_l = analyzer.calculate_3d_distance(w_nose, w_l_ankle) if w_l_ankle else 0
+                    dist_r = analyzer.calculate_3d_distance(w_nose, w_r_ankle) if w_r_ankle else 0
+                    dists = [d for d in [dist_l, dist_r] if d > 0]
+                    total_world_height = (sum(dists) / len(dists)) + 0.15
+                    
+                    # Anchor the calibration to the 3D model!
+                    config.WORLD_TO_REAL_RATIO = calibrated_height_feet / total_world_height
+                    print(f"SUCCESS: Calibrated! 3D Anchor Locked. Height will now remain constant even if they walk away.")
             
             click_data['clicks'] = [] # Reset clicks
             

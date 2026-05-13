@@ -5,26 +5,21 @@ import os
 
 # Add the parent directory to sys.path so we can import military_drill_ai
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from military_drill_ai.utils.config import config
 from military_drill_ai.detection.yolo_detector import YOLODetector
 from military_drill_ai.tracking.byte_tracker import Tracker
-from military_drill_ai.pose_estimation.rtmpose_estimator import RTMPoseEstimator
 
 def run_pipeline(video_source: str = "0"):
     """
     Test Pipeline
     """
-    print("Initializing YOLO Detector (Stage 1)...")
+    print("Initializing YOLO Detector & Pose (Stage 1 & 3)...")
     detector = YOLODetector(model_path=config.YOLO_MODEL_PATH, 
                             conf=config.DETECTION_CONFIDENCE,
                             classes=config.DETECTION_CLASSES)
                             
     print("Initializing ByteTracker (Stage 2)...")
     tracker = Tracker(detector)
-    
-    print("Initializing RTMPose-M (Stage 3)...")
-    pose_estimator = RTMPoseEstimator()
     
     # If source is an integer string, use it as camera index
     if video_source.isdigit():
@@ -41,18 +36,11 @@ def run_pipeline(video_source: str = "0"):
         if not ret:
             break
             
-        # Run tracking (includes detection)
+        # Run tracking and pose estimation combined natively
         tracks = tracker.track_frame(frame)
         
-        # Run Pose Estimation (Top-Down on Bboxes)
-        poses = pose_estimator.estimate_pose(frame, tracks)
-        
-        # Draw tracking bounding boxes
+        # Draw tracking bounding boxes and skeletons
         frame_out = tracker.draw_tracks(frame, tracks)
-        
-        # Draw skeletons
-        if poses:
-            frame_out = pose_estimator.draw_skeletons(frame_out, poses)
         
         cv2.imshow("Military Drill AI Pipeline - Live", frame_out)
         

@@ -5,19 +5,24 @@ class MediaPipeEstimator:
     def __init__(self):
         """
         Initializes MediaPipe Holistic for full-body and finger tracking.
+        We use a dictionary to maintain a separate Holistic tracker for each Cadet ID,
+        ensuring perfect temporal smoothing for multiple people.
         """
         self.mp_holistic = mp.solutions.holistic
-        
-        # Initialize Holistic model
-        self.holistic = self.mp_holistic.Holistic(
-            static_image_mode=False,
-            model_complexity=1,
-            smooth_landmarks=True,
-            enable_segmentation=False,
-            refine_face_landmarks=False,
-            min_detection_confidence=0.5,
-            min_tracking_confidence=0.5
-        )
+        self.trackers = {} # cadet_id -> Holistic instance
+
+    def _get_tracker(self, cadet_id):
+        if cadet_id not in self.trackers:
+            self.trackers[cadet_id] = self.mp_holistic.Holistic(
+                static_image_mode=False, # False allows temporal smoothing
+                model_complexity=0, # 0 = Lite model for much faster multi-person CPU tracking
+                smooth_landmarks=True,
+                enable_segmentation=False,
+                refine_face_landmarks=False,
+                min_detection_confidence=0.3, # Lowered to allow partial body recognition
+                min_tracking_confidence=0.3   # Lowered to allow partial body recognition
+            )
+        return self.trackers[cadet_id]
 
     def estimate_and_draw(self, frame, tracks):
         """
@@ -25,36 +30,55 @@ class MediaPipeEstimator:
         Draws them directly onto the frame.
         """
         out_frame = frame.copy()
-        
-        # MediaPipe expects RGB
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        
+        # Keep track of active IDs to clean up old trackers and save memory
+        active_ids = set()
         
         for track in tracks:
             x1, y1, x2, y2, conf, cls, cadet_id = track
+            if cadet_id == -1:
+                continue
+                
+            active_ids.add(cadet_id)
             
-            # Add a small margin to the bounding box to ensure hands/feet aren't clipped
-            margin_x = int((x2 - x1) * 0.15)
-            margin_y = int((y2 - y1) * 0.15)
+            # Get the dedicated tracker for this specific cadet
+            tracker = self._get_tracker(cadet_id)
             
-            crop_x1 = max(0, x1 - margin_x)
-            crop_y1 = max(0, y1 - margin_y)
-            crop_x2 = min(frame.shape[1], x2 + margin_x)
-            crop_y2 = min(frame.shape[0], y2 + margin_y)
+            # MediaPipe expects a square-ish aspect ratio.
+            width = x2 - x1
+            height = y2 - y1
+            center_x = x1 + width // 2
+            center_y = y1 + height // 2
+            
+            box_size = max(width, height)
+            padded_size = int(box_size * 1.4) # 40% margin to catch extended saluting hands
+            half_size = padded_size // 2
+            
+            crop_x1 = max(0, center_x - half_size)
+            crop_y1 = max(0, center_y - half_size)
+            crop_x2 = min(frame.shape[1], center_x + half_size)
+            crop_y2 = min(frame.shape[0], center_y + half_size)
             
             crop = frame_rgb[crop_y1:crop_y2, crop_x1:crop_x2]
             if crop.size == 0:
                 continue
                 
-            # Process the crop with MediaPipe
-            results = self.holistic.process(crop)
+            # Process the square crop with this cadet's personal MediaPipe tracker
+            results = tracker.process(crop)
             
-            # We need to offset the drawing coordinates back to the full frame
             crop_h, crop_w, _ = crop.shape
             
             # Draw offset landmarks
             self._draw_offset_landmarks(out_frame, results.pose_landmarks, self.mp_holistic.POSE_CONNECTIONS, crop_x1, crop_y1, crop_w, crop_h, is_hand=False)
             self._draw_offset_landmarks(out_frame, results.left_hand_landmarks, self.mp_holistic.HAND_CONNECTIONS, crop_x1, crop_y1, crop_w, crop_h, is_hand=True)
             self._draw_offset_landmarks(out_frame, results.right_hand_landmarks, self.mp_holistic.HAND_CONNECTIONS, crop_x1, crop_y1, crop_w, crop_h, is_hand=True)
+            
+        # Clean up trackers for cadets who have left the frame
+        dead_ids = set(self.trackers.keys()) - active_ids
+        for d_id in dead_ids:
+            self.trackers[d_id].close()
+            del self.trackers[d_id]
             
         return out_frame
 
@@ -71,11 +95,12 @@ class MediaPipeEstimator:
                 pt1 = landmark_list.landmark[start_idx]
                 pt2 = landmark_list.landmark[end_idx]
                 
-                # Ignore points that are very low visibility
-                if hasattr(pt1, 'visibility') and pt1.visibility < 0.3:
-                    continue
-                if hasattr(pt2, 'visibility') and pt2.visibility < 0.3:
-                    continue
+                # Ignore points that are very low visibility (Hands do not have visibility calculated)
+                if not is_hand:
+                    if hasattr(pt1, 'visibility') and pt1.visibility < 0.3:
+                        continue
+                    if hasattr(pt2, 'visibility') and pt2.visibility < 0.3:
+                        continue
                 
                 # Convert normalized coordinates to pixel coordinates in the crop, then add offset
                 x1 = int(pt1.x * crop_w) + offset_x
@@ -89,8 +114,9 @@ class MediaPipeEstimator:
                 
         # Draw landmarks (joints)
         for idx, landmark in enumerate(landmark_list.landmark):
-            if hasattr(landmark, 'visibility') and landmark.visibility < 0.3:
-                continue
+            if not is_hand:
+                if hasattr(landmark, 'visibility') and landmark.visibility < 0.3:
+                    continue
                 
             x = int(landmark.x * crop_w) + offset_x
             y = int(landmark.y * crop_h) + offset_y

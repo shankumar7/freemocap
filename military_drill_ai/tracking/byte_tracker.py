@@ -25,7 +25,8 @@ class Tracker:
             classes=self.detector.classes, 
             tracker=custom_tracker_path,  # Use our custom config with 600 frame buffer
             persist=True, 
-            verbose=False
+            verbose=False,
+            imgsz=320
         )
         
         # Gather all YOLO IDs in current frame

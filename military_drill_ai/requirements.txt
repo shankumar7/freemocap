@@ -12,3 +12,4 @@ pytest
 pydantic
 openvr
 PySide6
+lapx

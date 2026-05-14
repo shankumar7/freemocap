@@ -17,7 +17,7 @@ class MediaPipeEstimator:
         if cadet_id not in self.trackers:
             self.trackers[cadet_id] = self.mp_holistic.Holistic(
                 static_image_mode=False,
-                model_complexity=1,
+                model_complexity=0,
                 smooth_landmarks=True,
                 enable_segmentation=False,
                 refine_face_landmarks=False,

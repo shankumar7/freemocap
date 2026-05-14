@@ -11,6 +11,47 @@ from military_drill_ai.tracking.byte_tracker import Tracker
 from military_drill_ai.pose_estimation.mediapipe_estimator import MediaPipeEstimator
 from military_drill_ai.analytics.posture_analyzer import PostureAnalyzer
 
+import threading
+
+class FrameGrabber:
+    """Runs a background thread to continually grab the latest frame from the camera,
+    preventing buffer buildup and eliminating latency."""
+    def __init__(self, source):
+        self.cap = cv2.VideoCapture(source)
+        self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        self.ret = False
+        self.frame = None
+        self.running = True
+        self.lock = threading.Lock()
+        
+        if self.cap.isOpened():
+            self.thread = threading.Thread(target=self.update, daemon=True)
+            self.thread.start()
+        
+    def update(self):
+        while self.running and self.cap.isOpened():
+            ret, frame = self.cap.read()
+            with self.lock:
+                self.ret = ret
+                self.frame = frame
+            # Tiny sleep to not hog CPU but keep buffer empty
+            time.sleep(0.005)
+            
+    def read(self):
+        with self.lock:
+            if self.frame is not None:
+                return self.ret, self.frame.copy()
+            return self.ret, None
+            
+    def isOpened(self):
+        return self.cap.isOpened()
+        
+    def release(self):
+        self.running = False
+        if hasattr(self, 'thread'):
+            self.thread.join(timeout=1.0)
+        self.cap.release()
+
 class VideoThread(QThread):
     # Signals to communicate with the main GUI thread
     change_pixmap_signal = Signal(np.ndarray)
@@ -40,7 +81,9 @@ class VideoThread(QThread):
         self.analyzer = PostureAnalyzer()
         
         source = int(self.video_source) if self.video_source.isdigit() else self.video_source
-        cap = cv2.VideoCapture(source)
+        
+        # Use our new FrameGrabber to prevent latency/buffer buildup
+        cap = FrameGrabber(source)
         
         if not cap.isOpened():
             self.status_signal.emit(f"Error: Could not open video source {self.video_source}")
@@ -50,8 +93,9 @@ class VideoThread(QThread):
         
         while self._run_flag and cap.isOpened():
             ret, frame = cap.read()
-            if not ret:
-                break
+            if not ret or frame is None:
+                time.sleep(0.01)
+                continue
                 
             self.current_frame_shape = frame.shape
 

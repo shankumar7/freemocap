@@ -53,6 +53,13 @@ class MainWindow(QMainWindow):
         self.control_panel.btn_start.clicked.connect(self.start_camera)
         self.control_panel.btn_stop.clicked.connect(self.stop_camera)
         self.control_panel.btn_connect_vr.clicked.connect(self.toggle_vr)
+        self.control_panel.btn_auto_calibrate_vr.clicked.connect(self.trigger_vr_calibration)
+
+    def trigger_vr_calibration(self):
+        if self.video_thread:
+            self.video_thread.auto_calibrate_vr()
+        else:
+            self.update_log("Error: Camera pipeline must be running to calibrate.")
 
     @Slot(np.ndarray)
     def update_image(self, cv_img):

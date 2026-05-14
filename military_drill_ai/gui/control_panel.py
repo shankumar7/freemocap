@@ -46,8 +46,12 @@ class ControlPanel(QWidget):
         self.vr_status = QLabel("Status: Disconnected")
         self.vr_status.setStyleSheet("color: red;")
         
+        self.btn_auto_calibrate_vr = QPushButton("Auto-Calibrate Height from Head Tracker")
+        self.btn_auto_calibrate_vr.setEnabled(False) # Enabled only when VR is connected
+        
         self.vr_layout.addWidget(self.btn_connect_vr)
         self.vr_layout.addWidget(self.vr_status)
+        self.vr_layout.addWidget(self.btn_auto_calibrate_vr)
         
         # Status Log
         self.log_group = QGroupBox("System Log")
@@ -73,7 +77,9 @@ class ControlPanel(QWidget):
             self.vr_status.setText("Status: Connected")
             self.vr_status.setStyleSheet("color: #00ff00;")
             self.btn_connect_vr.setText("Disconnect SteamVR")
+            self.btn_auto_calibrate_vr.setEnabled(True)
         else:
             self.vr_status.setText("Status: Disconnected")
             self.vr_status.setStyleSheet("color: red;")
             self.btn_connect_vr.setText("Connect SteamVR")
+            self.btn_auto_calibrate_vr.setEnabled(False)

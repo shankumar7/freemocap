@@ -22,6 +22,7 @@ class VideoThread(QThread):
         self.video_source = "0"
         self.vive_client = vive_client
         self.calibration_clicks = []
+        self.trigger_vr_calibration = False
         
         # We will initialize models when the thread starts
         self.detector = None
@@ -74,6 +75,10 @@ class VideoThread(QThread):
                     text = f"{cls} [{serial}]: X:{pos[0]:.2f} Y:{pos[1]:.2f} Z:{pos[2]:.2f}"
                     cv2.putText(frame_out, text, (10, y_offset), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
                     y_offset += 30
+                    
+                if self.trigger_vr_calibration:
+                    self._handle_vr_calibration(tracker_data, posture_data)
+                    self.trigger_vr_calibration = False
 
             # 5. Calibration Logic
             if len(self.calibration_clicks) == 2:
@@ -131,6 +136,50 @@ class VideoThread(QThread):
             abs_x = int(rel_x * w)
             abs_y = int(rel_y * h)
             self.calibration_clicks.append((abs_x, abs_y))
+
+    def auto_calibrate_vr(self):
+        self.trigger_vr_calibration = True
+
+    def _handle_vr_calibration(self, tracker_data, posture_data):
+        if not tracker_data:
+            self.status_signal.emit("Error: No Vive Tracker data available.")
+            return
+            
+        # Find the highest tracker (Y axis is up in SteamVR)
+        highest_y = -float('inf')
+        for serial, data in tracker_data.items():
+            if data['position'][1] > highest_y:
+                highest_y = data['position'][1]
+                
+        if highest_y == -float('inf'):
+            return
+            
+        # highest_y is in meters. Convert to feet (optional, but our original code used feet)
+        real_height_feet = highest_y * 3.28084
+        
+        if len(posture_data) > 0:
+            cadet_id = list(posture_data.keys())[0]
+            data = posture_data[cadet_id]
+            
+            w_nose = data.get('world_nose')
+            w_l_ankle = data.get('world_left_ankle')
+            w_r_ankle = data.get('world_right_ankle')
+            
+            if w_nose and (w_l_ankle or w_r_ankle):
+                dist_l = self.analyzer.calculate_3d_distance(w_nose, w_l_ankle) if w_l_ankle else 0
+                dist_r = self.analyzer.calculate_3d_distance(w_nose, w_r_ankle) if w_r_ankle else 0
+                dists = [d for d in [dist_l, dist_r] if d > 0]
+                
+                if dists:
+                    total_world_height = (sum(dists) / len(dists)) + 0.15
+                    config.WORLD_TO_REAL_RATIO = real_height_feet / total_world_height
+                    self.status_signal.emit(f"SUCCESS: Auto-Calibrated using VR Head Tracker! Height locked to {highest_y:.2f} meters.")
+                else:
+                    self.status_signal.emit("Error: Could not calculate 3D height from MediaPipe.")
+            else:
+                self.status_signal.emit("Error: MediaPipe could not detect full body for calibration.")
+        else:
+            self.status_signal.emit("Error: No cadet detected in frame.")
 
     def stop(self):
         self._run_flag = False

@@ -10,3 +10,5 @@ pandas
 numpy
 pytest
 pydantic
+openvr
+PySide6

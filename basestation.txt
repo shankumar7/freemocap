@@ -1,0 +1,36 @@
+# Integration Plan: Vive Base Stations & Trackers with FreeMoCap
+
+## Overview
+Out of the box, FreeMoCap is a **markerless** motion capture system designed to use standard video cameras (webcams, GoPros, etc.) and AI pose estimation. It does not natively support Vive base stations or trackers. 
+
+However, because FreeMoCap is open-source and modular, **yes, we can integrate Vive base stations and trackers** into the system. This integration would typically be used to either provide highly accurate tracking for specific props (like weapons in military drills) or to serve as a "ground truth" reference to validate the accuracy of FreeMoCap's AI estimations.
+
+## Proposed Integration Plan
+
+### Phase 1: Hardware & Software Prerequisites
+1. **Physical Setup:** Mount the Vive Base Stations (Lighthouse tracking) and ensure they cover the capture volume used by FreeMoCap.
+2. **SteamVR Configuration:** Install and configure SteamVR. Ensure the base stations and any Vive Trackers/Controllers are successfully paired and tracking within SteamVR.
+3. **Python Environment:** Install the OpenVR Python bindings (`pip install openvr` or `pyopenvr`) in the FreeMoCap virtual environment.
+
+### Phase 2: Data Acquisition Module
+1. **OpenVR Interface:** Create a custom Python module in the FreeMoCap repository (e.g., `freemocap/tracking/vive_tracker.py`).
+2. **Data Polling:** Use the `openvr` library to continuously poll the 6DoF (Position and Orientation) data from the active Vive trackers.
+3. **Timestamping:** Ensure the tracker data is logged with high-precision timestamps so it can later be synchronized with FreeMoCap's camera frames.
+
+### Phase 3: Spatial Calibration (Coordinate System Alignment)
+This is the most critical step. FreeMoCap and SteamVR have two different 3D coordinate systems. We must align them.
+1. **Calibration Process:** 
+   - FreeMoCap uses a ChArUco board to define its 3D origin (`0,0,0`) and axes.
+   - We need to find the transformation matrix between SteamVR's world space and FreeMoCap's ChArUco space.
+2. **Implementation:** 
+   - Attach a Vive Tracker firmly to the FreeMoCap ChArUco calibration board.
+   - While FreeMoCap is calibrating the cameras using the board, simultaneously record the Vive Tracker's position in SteamVR.
+   - Calculate the translation and rotation offsets to convert SteamVR coordinates into FreeMoCap coordinates.
+
+### Phase 4: Data Fusion and Synchronization
+1. **Time Synchronization:** FreeMoCap cameras run at 30-60 FPS, while Vive trackers poll at a much higher frequency. Write a synchronization script to interpolate or match the Vive data timestamps to the exact camera frame timestamps.
+2. **Data Export:** Merge the transformed Vive tracker data into FreeMoCap's final output formats (e.g., `.npy`, `.csv`, or Blender outputs).
+
+### Phase 5: Application (Military Drill Context)
+- **Weapon Tracking:** Attach a Vive Tracker to a training rifle. FreeMoCap will track the cadet's body (markerless), while the Vive system tracks the exact 3D orientation of the rifle (marker-based), combining both into a single cohesive scene.
+- **Accuracy Validation:** Use trackers on the cadet's wrists/ankles to compare the AI pose estimation accuracy against the sub-millimeter precision of the Lighthouse tracking.

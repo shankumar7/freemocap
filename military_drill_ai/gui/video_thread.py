@@ -1,0 +1,137 @@
+import cv2
+import time
+import math
+import numpy as np
+from PySide6.QtCore import QThread, Signal
+from PySide6.QtGui import QImage
+
+from military_drill_ai.utils.config import config
+from military_drill_ai.detection.yolo_detector import YOLODetector
+from military_drill_ai.tracking.byte_tracker import Tracker
+from military_drill_ai.pose_estimation.mediapipe_estimator import MediaPipeEstimator
+from military_drill_ai.analytics.posture_analyzer import PostureAnalyzer
+
+class VideoThread(QThread):
+    # Signals to communicate with the main GUI thread
+    change_pixmap_signal = Signal(np.ndarray)
+    status_signal = Signal(str)
+    
+    def __init__(self, vive_client=None):
+        super().__init__()
+        self._run_flag = True
+        self.video_source = "0"
+        self.vive_client = vive_client
+        self.calibration_clicks = []
+        
+        # We will initialize models when the thread starts
+        self.detector = None
+        self.tracker = None
+        self.pose_estimator = None
+        self.analyzer = None
+
+    def run(self):
+        self.status_signal.emit("Initializing AI Models...")
+        self.detector = YOLODetector(model_path=config.YOLO_MODEL_PATH, 
+                                     conf=config.DETECTION_CONFIDENCE,
+                                     classes=config.DETECTION_CLASSES)
+        self.tracker = Tracker(self.detector)
+        self.pose_estimator = MediaPipeEstimator()
+        self.analyzer = PostureAnalyzer()
+        
+        source = int(self.video_source) if self.video_source.isdigit() else self.video_source
+        cap = cv2.VideoCapture(source)
+        
+        if not cap.isOpened():
+            self.status_signal.emit(f"Error: Could not open video source {self.video_source}")
+            return
+
+        self.status_signal.emit("Running Pipeline. Ready for calibration clicks.")
+        
+        while self._run_flag and cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
+                
+            self.current_frame_shape = frame.shape
+
+            # 1. Tracking (YOLO + ByteTrack)
+            tracks = self.tracker.track_frame(frame)
+            frame_out = self.tracker.draw_tracks(frame, tracks)
+            
+            # 2. Pose Estimation (MediaPipe)
+            frame_out, posture_data = self.pose_estimator.estimate_and_draw(frame_out, tracks)
+            
+            # 3. Analytics Engine
+            frame_out = self.analyzer.analyze_and_draw(frame_out, posture_data, tracks)
+            
+            # 4. Integrate Vive Tracker Data if active
+            if self.vive_client and self.vive_client.is_initialized:
+                tracker_data = self.vive_client.poll_poses()
+                y_offset = 30
+                for serial, data in tracker_data.items():
+                    pos = data['position']
+                    cls = data['device_class']
+                    text = f"{cls} [{serial}]: X:{pos[0]:.2f} Y:{pos[1]:.2f} Z:{pos[2]:.2f}"
+                    cv2.putText(frame_out, text, (10, y_offset), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
+                    y_offset += 30
+
+            # 5. Calibration Logic
+            if len(self.calibration_clicks) == 2:
+                self._handle_calibration(posture_data)
+                
+            # Draw clicks
+            for click in self.calibration_clicks:
+                cv2.circle(frame_out, click, 5, (0, 0, 255), -1)
+
+            # Send frame to GUI
+            self.change_pixmap_signal.emit(frame_out)
+            
+            # Small sleep to yield to GUI thread
+            time.sleep(0.01)
+            
+        cap.release()
+        self.status_signal.emit("Camera Stopped")
+        
+    def _handle_calibration(self, posture_data):
+        p1 = self.calibration_clicks[0]
+        p2 = self.calibration_clicks[1]
+        
+        pixel_dist = math.sqrt((p2[0]-p1[0])**2 + (p2[1]-p1[1])**2)
+        if pixel_dist > 0 and len(posture_data) > 0:
+            pixels_per_foot = pixel_dist * (30.48 / 15.0)
+            cadet_id = list(posture_data.keys())[0]
+            data = posture_data[cadet_id]
+            
+            nose = data.get('nose')
+            l_ankle = data.get('left_ankle')
+            r_ankle = data.get('right_ankle')
+            w_nose = data.get('world_nose')
+            w_l_ankle = data.get('world_left_ankle')
+            w_r_ankle = data.get('world_right_ankle')
+            
+            if nose and (l_ankle or r_ankle) and w_nose and (w_l_ankle or w_r_ankle):
+                ankles_y = [a[1] for a in [l_ankle, r_ankle] if a]
+                height_px = (sum(ankles_y) / len(ankles_y)) - nose[1]
+                calibrated_height_feet = height_px / pixels_per_foot
+                
+                dist_l = self.analyzer.calculate_3d_distance(w_nose, w_l_ankle) if w_l_ankle else 0
+                dist_r = self.analyzer.calculate_3d_distance(w_nose, w_r_ankle) if w_r_ankle else 0
+                dists = [d for d in [dist_l, dist_r] if d > 0]
+                
+                if dists:
+                    total_world_height = (sum(dists) / len(dists)) + 0.15
+                    config.WORLD_TO_REAL_RATIO = calibrated_height_feet / total_world_height
+                    self.status_signal.emit("SUCCESS: Calibrated! 3D Anchor Locked.")
+                
+        self.calibration_clicks = [] # Reset clicks
+        
+    def add_click_relative(self, rel_x, rel_y):
+        if hasattr(self, 'current_frame_shape') and self.current_frame_shape:
+            h, w = self.current_frame_shape[:2]
+            abs_x = int(rel_x * w)
+            abs_y = int(rel_y * h)
+            self.calibration_clicks.append((abs_x, abs_y))
+
+    def stop(self):
+        self._run_flag = False
+        self.wait()

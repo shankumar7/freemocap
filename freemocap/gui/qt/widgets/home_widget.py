@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 from typing import Union
 
 import requests
@@ -107,7 +108,7 @@ class HomeWidget(QWidget):
                 f"\n\ninto the terminal you used to launch this program (with your `(freemocap-env)` environment activated)"
             )
         else:
-            tooltip_string = f"Your version of freemocap ({freemocap.__version__}) is up to date! (latest: {self.check_for_latest_version()})"
+            tooltip_string = f"Your version of Military Drill AI ({freemocap.__version__}) is up to date! (latest: {self.check_for_latest_version()})"
         version_label = QLabel(version_label_string)
         version_label.setAlignment(Qt.AlignmentFlag.AlignRight)
         version_label.setStyleSheet("font-size: 12px;color: #777777")
@@ -158,7 +159,7 @@ class HomeWidget(QWidget):
         discord_string.setOpenExternalLinks(True)
         hbox.addWidget(discord_string, alignment=Qt.AlignmentFlag.AlignRight)
 
-        donate_string = '<a href="https://freemocap.org/about-us.html#donate" style="color: #333333;">donate &lt;3</a>'
+        donate_string = '<a href="https://freemocap.org/about-us.html#donate" style="color: #333333;">donate ❤️</a>'
         donate_string = QLabel(donate_string)
         donate_string.setOpenExternalLinks(True)
         hbox.addWidget(donate_string, alignment=Qt.AlignmentFlag.AlignRight)
@@ -185,16 +186,16 @@ class HomeWidget(QWidget):
         save_gui_state(gui_state=self.gui_state, file_pathstring=get_gui_state_json_path())
 
     def _welcome_to_freemocap_title(self):
-        logger.debug("Creating `welcome to freemocap` layout")
+        logger.debug("Creating `welcome to Military Drill AI` layout")
 
-        session_title_label = QLabel("Welcome  to  FreeMoCap!")
+        session_title_label = QLabel("Welcome  to  Military Drill AI!")
         session_title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         session_title_label.setStyleSheet("font-size: 54px;")
 
         return session_title_label
 
     def _add_freemocap_logo(self):
-        freemocap_logo_label = LogoSvgWidget(image_path=PATH_TO_FREEMOCAP_LOGO_SVG)
+        freemocap_logo_label = LogoSvgWidget(image_path=str(Path(freemocap.__file__).parent / "assets" / "military_drill_logo.png"))
         self._layout.addStretch(1)
         self._layout.addWidget(freemocap_logo_label)
         self._layout.addStretch(1)

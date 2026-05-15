@@ -20,12 +20,12 @@ class WelcomeScreenDialog(QDialog):
 
         self.setMinimumSize(600, 300)
 
-        self.setWindowTitle("Welcome to Freemocap!")
+        self.setWindowTitle("Welcome to Military Drill AI!")
 
         self._layout = QVBoxLayout()
         self.setLayout(self._layout)
 
-        welcome_message = SPARKLES_EMOJI_STRING + "Welcome to Freemocap!" + SPARKLES_EMOJI_STRING
+        welcome_message = SPARKLES_EMOJI_STRING + "Welcome to Military Drill AI!" + SPARKLES_EMOJI_STRING
 
         welcome_text_label = QLabel(welcome_message)
         welcome_text_label.setWordWrap(True)
@@ -37,7 +37,7 @@ class WelcomeScreenDialog(QDialog):
         self.frame.setFrameShadow(QFrame.Shadow.Sunken)
         self._layout.addWidget(self.frame)
 
-        single_camera_doc_text = "Starting with a single camera recording is a great way to learn to use FreeMoCap.\nClick the link below for a tutorial on getting 2d data from a single camera, without any calibrating."
+        single_camera_doc_text = "Starting with a single camera recording is a great way to learn to use Military Drill AI.\nClick the link below for a tutorial on getting 2d data from a single camera, without any calibrating."
         single_camera_docs_label = QLabel(single_camera_doc_text)
         single_camera_docs_label.setWordWrap(True)
         self._layout.addWidget(single_camera_docs_label, 1)
@@ -47,7 +47,7 @@ class WelcomeScreenDialog(QDialog):
         single_camera_doc_link.setOpenExternalLinks(True)
         self._layout.addWidget(single_camera_doc_link)
 
-        multi_camera_doc_text = "To get 3d data from FreeMoCap, you need to record with multiple cameras and calibrate them with a charuco board.\nClick the link below for a tutorial on calibrating multiple cameras."
+        multi_camera_doc_text = "To get 3d data from Military Drill AI, you need to record with multiple cameras and calibrate them with a charuco board.\nClick the link below for a tutorial on calibrating multiple cameras."
         multi_camera_docs_label = QLabel(multi_camera_doc_text)
         multi_camera_docs_label.setWordWrap(True)
         self._layout.addWidget(multi_camera_docs_label, 1)

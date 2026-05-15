@@ -5,6 +5,8 @@ import threading
 from pathlib import Path
 from typing import Union, List, Callable
 
+import freemocap
+
 from PySide6.QtCore import Qt, Slot
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
@@ -67,6 +69,7 @@ from freemocap.gui.qt.widgets.opencv_conflict_dialog import OpencvConflictDialog
 from freemocap.gui.qt.widgets.release_notes_dialogs.tabbed_release_notes_dialog import TabbedReleaseNotesDialog
 from freemocap.gui.qt.widgets.set_data_folder_dialog import SetDataFolderDialog
 from freemocap.gui.qt.widgets.welcome_screen_dialog import WelcomeScreenDialog
+from freemocap.gui.qt.widgets.military_drill_ai_widget import MilitaryDrillAiWidget
 from freemocap.gui.qt.workers.download_sample_data_thread_worker import DownloadDataThreadWorker
 from freemocap.gui.qt.workers.export_to_blender_thread_worker import ExportToBlenderThreadWorker
 # reboot GUI method based on this - https://stackoverflow.com/a/56563926/14662833
@@ -99,11 +102,11 @@ class MainWindow(QMainWindow):
     ):
         super().__init__(parent=parent)
         self._log_view_widget = LogViewWidget(parent=self)  # start this first so it will grab the setup logs
-        logger.info("Initializing FreeMoCap MainWindow")
+        logger.info("Initializing Military Drill AI MainWindow")
 
         self.setMinimumSize(1280, 720)
-        self.setWindowIcon(QIcon(PATH_TO_FREEMOCAP_LOGO_SVG))
-        self.setWindowTitle("freemocap \U0001f480 \U00002728")
+        self.setWindowIcon(QIcon(str(Path(freemocap.__file__).parent / "assets" / "military_drill_logo.png")))
+        self.setWindowTitle("Military Drill AI \U0001f4aa \U00002728")
 
         dummy_widget = QWidget()
         self._layout = QHBoxLayout()
@@ -155,7 +158,7 @@ class MainWindow(QMainWindow):
         log_view_dock_widget.setFeatures(
             QDockWidget.DockWidgetFeature.DockWidgetMovable | QDockWidget.DockWidgetFeature.DockWidgetFloatable
         )
-        logger.debug("Finished initializing FreeMoCap MainWindow")
+        logger.debug("Finished initializing Military Drill AI MainWindow")
 
     def _create_tools_dock_widget(self):
         tools_dock_widget = QDockWidget("Control Panel", self)
@@ -232,6 +235,7 @@ class MainWindow(QMainWindow):
     def _create_central_tab_widget(self):
         self._home_widget = HomeWidget(actions=self._actions, gui_state=self._gui_state, parent=self)
         self._live_capture_widget = LiveCaptureWidget(camera_index=0, parent=self)
+        self._military_drill_ai_widget = MilitaryDrillAiWidget(parent=self)
 
         self._skellycam_widget = SkellyCamWidget(
             self._create_new_synchronized_videos_folder,
@@ -257,6 +261,7 @@ class MainWindow(QMainWindow):
             live_capture_widget=self._live_capture_widget,
             directory_view_widget=self._directory_view_widget,
             active_recording_info_widget=self._active_recording_info_widget,
+            military_drill_ai_widget=self._military_drill_ai_widget,
         )
 
         center_tab_widget.set_welcome_tab_enabled(True)
@@ -400,6 +405,7 @@ class MainWindow(QMainWindow):
         logger.info("Killing running threads and processes... ")
         try:
             self._skellycam_widget.close()
+            self._military_drill_ai_widget.close()
         except Exception as e:
             logger.error(f"Error killing running threads and processes: {e}")
 
@@ -477,7 +483,7 @@ class MainWindow(QMainWindow):
         self._import_videos_window.exec()
 
     def open_welcome_screen_dialog(self):
-        logger.info("Opening `Welcome to Freemocap` dialog... ")
+        logger.info("Opening `Welcome to Military Drill AI` dialog... ")
 
         self._welcome_screen_dialog = WelcomeScreenDialog(
             gui_state=self._gui_state, kill_thread_event=self._kill_thread_event, parent=self

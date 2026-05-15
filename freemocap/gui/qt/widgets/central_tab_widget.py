@@ -10,6 +10,7 @@ from freemocap.gui.qt.widgets.home_widget import (
     HomeWidget,
 )
 from freemocap.gui.qt.widgets.live_capture_widget import LiveCaptureWidget
+from freemocap.gui.qt.widgets.military_drill_ai_widget import MilitaryDrillAiWidget
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +25,7 @@ class CentralTabWidget(QTabWidget):
         live_capture_widget: LiveCaptureWidget,
         directory_view_widget: QWidget,
         active_recording_info_widget: QWidget,
+        military_drill_ai_widget: MilitaryDrillAiWidget,
         parent=None,
     ):
         super().__init__(parent=parent)
@@ -38,8 +40,10 @@ class CentralTabWidget(QTabWidget):
         self._live_capture_widget = live_capture_widget
         self._directory_view_widget = directory_view_widget
         self._active_recording_info_widget = active_recording_info_widget
+        self._military_drill_ai_widget = military_drill_ai_widget
 
         self._create_welcome_tab(self)
+        self._create_military_drill_ai_tab(self)
         self._create_skellycam_view_tab(self)
         self._create_live_capture_tab(self)
         self._create_skelly_viewer_tab(self)
@@ -103,3 +107,7 @@ class CentralTabWidget(QTabWidget):
     def _create_active_recording_info_tab(self, tab_widget: QTabWidget):
         logger.debug("Creating active recording info tab")
         tab_widget.addTab(self._active_recording_info_widget, "Active Recording Info")
+
+    def _create_military_drill_ai_tab(self, tab_widget: QTabWidget):
+        logger.debug("Creating military drill ai tab")
+        tab_widget.addTab(self._military_drill_ai_widget, "Military Drill AI")

@@ -51,7 +51,7 @@ def qt_gui_main():
         freemocap_main_window.close()
 
         if not error_code == EXIT_CODE_REBOOT:
-            print("Thank you for using freemocap \U0001f480 \U00002764 \U00002728")
+            print("Thank you for using Military Drill AI \U0001f4aa \U00002728")
             break
 
         logger.info("`main` exited with the 'reboot' code, so let's reboot!")
@@ -62,8 +62,8 @@ def qt_gui_main():
 def handle_pop_ups(freemocap_main_window: MainWindow):
     if freemocap_main_window._gui_state.show_welcome_screen:
         freemocap_main_window.open_welcome_screen_dialog()
-    if not freemocap_main_window._gui_state.shown_latest_release_notes:
-        freemocap_main_window.open_release_notes_popup()
+    # if not freemocap_main_window._gui_state.shown_latest_release_notes:
+    #     freemocap_main_window.open_release_notes_popup()
 
     installed_packages = {dist.metadata["Name"] for dist in distributions()}
     if "opencv-python" in installed_packages and "opencv-contrib-python" in installed_packages:

@@ -18,12 +18,12 @@ class SetDataFolderDialog(QDialog):
     def _initUI(self) -> None:
         self.setMinimumSize(500, 200)
 
-        self.setWindowTitle("Set Freemocap Data Folder")
+        self.setWindowTitle("Set Military Drill AI Data Folder")
 
         self._layout = QVBoxLayout()
         self.setLayout(self._layout)
 
-        self._title_message_label = QLabel(f"Freemocap Data Folder: {self.gui_state.freemocap_data_folder_path}")
+        self._title_message_label = QLabel(f"Military Drill AI Data Folder: {self.gui_state.freemocap_data_folder_path}")
         self._title_message_label.setWordWrap(True)
         self._layout.addWidget(self._title_message_label)
 
@@ -31,7 +31,7 @@ class SetDataFolderDialog(QDialog):
         self._change_data_folder_button.clicked.connect(self._change_data_folder)
         self._layout.addWidget(self._change_data_folder_button)
 
-        self._reboot_warning_label = QLabel("Changing the freemocap data folder will reboot the GUI.")
+        self._reboot_warning_label = QLabel("Changing the data folder will reboot the GUI.")
         self._layout.addWidget(self._reboot_warning_label)
 
         button_box = QHBoxLayout()
@@ -53,7 +53,7 @@ class SetDataFolderDialog(QDialog):
             str(self.gui_state.freemocap_data_folder_path),
             QFileDialog.ShowDirsOnly,
         )
-        self._title_message_label.setText(f"Freemocap Data Folder: {self.new_folder_path}")
+        self._title_message_label.setText(f"Military Drill AI Data Folder: {self.new_folder_path}")
 
         if self.new_folder_path == "":
             self._done_button.setEnabled(False)

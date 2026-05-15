@@ -1,48 +1,32 @@
 import cv2
-from PySide6.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QLabel
+import numpy as np
+from PySide6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel
 from PySide6.QtCore import Qt, Slot
 from PySide6.QtGui import QImage, QPixmap
-import numpy as np
 
 from military_drill_ai.gui.control_panel import ControlPanel
 from military_drill_ai.gui.video_thread import VideoThread
 
-class MainWindow(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("Military Drill AI - United Interface")
-        self.setGeometry(100, 100, 1200, 800)
+class MilitaryDrillAiWidget(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
         
-        # Apply dark theme similar to FreeMoCap
-        self.setStyleSheet("""
-            QMainWindow { background-color: #1e1e1e; color: #ffffff; }
-            QWidget { background-color: #1e1e1e; color: #ffffff; font-family: 'Inter', sans-serif; }
-            QGroupBox { border: 1px solid #3d3d3d; border-radius: 5px; margin-top: 10px; font-weight: bold; }
-            QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 3px; }
-            QPushButton { background-color: #0e639c; color: white; border: none; padding: 8px; border-radius: 4px; }
-            QPushButton:hover { background-color: #1177bb; }
-            QPushButton:disabled { background-color: #3d3d3d; color: #888888; }
-            QLineEdit { background-color: #2d2d2d; border: 1px solid #3d3d3d; padding: 4px; color: white; }
-        """)
-        
-        self.central_widget = QWidget()
-        self.setCentralWidget(self.central_widget)
-        self.main_layout = QHBoxLayout()
-        self.central_widget.setLayout(self.main_layout)
+        self.layout = QHBoxLayout()
+        self.setLayout(self.layout)
         
         # --- Left Side: Video Viewport ---
         self.viewport_layout = QVBoxLayout()
         self.video_label = QLabel("Click 'Start Camera' to begin pipeline")
         self.video_label.setAlignment(Qt.AlignCenter)
         self.video_label.setStyleSheet("background-color: #000000; border: 1px solid #3d3d3d;")
-        self.video_label.setMinimumSize(800, 600)
+        self.video_label.setMinimumSize(640, 480)
         self.video_label.mousePressEvent = self.on_viewport_click
         self.viewport_layout.addWidget(self.video_label)
-        self.main_layout.addLayout(self.viewport_layout, stretch=3)
+        self.layout.addLayout(self.viewport_layout, stretch=3)
         
         # --- Right Side: Control Panel ---
         self.control_panel = ControlPanel()
-        self.main_layout.addWidget(self.control_panel, stretch=1)
+        self.layout.addWidget(self.control_panel, stretch=1)
         
         # Modules
         self.video_thread = None
@@ -74,32 +58,21 @@ class MainWindow(QMainWindow):
     def on_viewport_click(self, event):
         """Handle clicks on the video label for calibration."""
         if self.control_panel.btn_calibrate.isChecked() and self.video_thread is not None:
-            # We need to map the click position on the QLabel back to the original image coordinates
-            # Since we scale the image using KeepAspectRatio, this requires some math.
-            
-            # Get actual displayed pixmap size
             pixmap = self.video_label.pixmap()
-            if not pixmap:
-                return
+            if not pixmap: return
                 
             pm_width = pixmap.width()
             pm_height = pixmap.height()
-            
-            # Get label size
             lbl_width = self.video_label.width()
             lbl_height = self.video_label.height()
             
-            # Calculate offsets
             x_offset = (lbl_width - pm_width) // 2
             y_offset = (lbl_height - pm_height) // 2
             
-            # Click pos
             click_x = event.position().x()
             click_y = event.position().y()
             
-            # Check if click is inside the actual image
             if x_offset <= click_x <= x_offset + pm_width and y_offset <= click_y <= y_offset + pm_height:
-                # Map to original image coordinates
                 rel_x = (click_x - x_offset) / pm_width
                 rel_y = (click_y - y_offset) / pm_height
                 self.video_thread.add_click_relative(rel_x, rel_y)
@@ -129,7 +102,6 @@ class MainWindow(QMainWindow):
             self.video_label.clear()
             self.video_label.setText("Camera Stopped")
             
-    def closeEvent(self, event):
+    def close(self):
         self.stop_camera()
-        event.accept()
-
+        super().close()

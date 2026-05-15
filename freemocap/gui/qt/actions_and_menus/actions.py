@@ -12,16 +12,16 @@ LIVE_MOTION_CAPTURE_ACTION_NAME = "Live Motion Capture"
 LOAD_MOST_RECENT_RECORDING_ACTION_NAME = "Load Most Recent Recording"
 LOAD_RECORDING_ACTION_NAME = "Load Recording"
 IMPORT_VIDEOS_ACTION_NAME = "Import Videos"
-SET_DATA_FOLDER_ACTION_NAME = "Set Freemocap Data Folder Location"
+SET_DATA_FOLDER_ACTION_NAME = "Set Military Drill AI Data Folder Location"
 RESET_TO_DEFAULTS_ACTION_NAME = "Reset to Default GUI Settings"
 KILL_THREADS_AND_PROCESSES_ACTION_NAME = "Kill Threads and Processes"
 REBOOT_GUI_ACTION_NAME = "Reboot GUI"
 EXIT_ACTION_NAME = "Exit"
 
 OPEN_DOCS_ACTION_NAME = "Open Documentation"
-FREEMOCAP_FOUNDATION_ACTION_NAME = "Freemocap Foundation"
+FREEMOCAP_FOUNDATION_ACTION_NAME = "Military Drill AI Foundation"
 
-DONATE_ACTION_NAME = "Donate to Freemocap"
+DONATE_ACTION_NAME = "Donate to Military Drill AI"
 
 
 class Actions:

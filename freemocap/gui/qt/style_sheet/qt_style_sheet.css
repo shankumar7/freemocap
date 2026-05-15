@@ -1,230 +1,167 @@
+/* 
+    Military Drill AI - Minimalist Claymorphism Theme
+    Clean, Soft, and Tactical.
+*/
+
 * {
-    font-family: "Dosis", sans-serif;
-    font-size: 14px;
-    color: #333333;
+    font-family: 'Segoe UI', 'Outfit', 'Inter', sans-serif;
+    font-size: 15px;
+    color: #2D3436;
 }
 
 QObject {
-    color: #1d1d1f;
-    background-color: #f5f5f7;
-}
-
-QGroupBox {
-    border: 1px solid #bdbdbd;
-    border-radius: 4px;
-    margin-top: 10px;
-    font-weight: bold;
-    background-color: #f5f5f5;
-}
-
-QStatusBar {
-    color: #1d1d1f;
+    background-color: #F0F2F5; /* Soft off-white background */
 }
 
 QMainWindow {
-    background-color: #e0e0e0;
+    background-color: #F0F2F5;
 }
 
-QTabWidget::pane {
-    border: 1px solid #f5f5f7;
-    background: #eeeeee;
-    padding: 5px;
+/* Clay Panel Effect */
+QGroupBox, QTabWidget::pane {
+    background-color: #FFFFFF;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 25px;
+    margin-top: 20px;
+    padding: 15px;
+    /* Soft Outer Shadow simulation */
+    border-bottom: 4px solid #DFE6ED;
+    border-right: 4px solid #DFE6ED;
 }
 
-QTabWidget::pane::selection {
-    border-top: 1px solid #333333;
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top center;
+    padding: 5px 20px;
+    background-color: #3D5A80;
+    color: #FFFFFF;
+    border-radius: 15px;
+    font-weight: bold;
+    font-size: 13px;
+    top: -10px;
 }
 
+/* Minimalist Tabs */
 QTabBar::tab {
-    border: 1px solid #1d1d1f;
-    padding: 5px;
-    padding-right: 15px;
-    padding-left: 15px;
-    color: #1d1d1f;
-    border-top-left-radius: 20px;
-    border-top-right-radius: 5px;
-    background: #f5f5f7;
-    margin-bottom: -5px;
-    font-weight: bolder;
-    font-size: 16px;
+    background: transparent;
+    color: #636E72;
+    padding: 12px 30px;
+    margin-right: 10px;
+    font-weight: bold;
+    border-radius: 15px;
 }
 
-QTabBar::tab:selected,
-QTabBar::tab:hover {
-    background: #424242;
-    color: #f5f5f7;
-    border-color: #1d1d1f;
+QTabBar::tab:selected {
+    background: #3D5A80;
+    color: #FFFFFF;
+    /* Clay look for selected tab */
+    border-bottom: 3px solid #2B4162;
 }
 
+QTabBar::tab:hover:!selected {
+    background: #E1E8EE;
+    color: #2D3436;
+}
+
+/* Claymorphic Buttons */
 QPushButton {
-    border-radius: 10px;
-    color: #1d1d1f;
-    border: 2px solid #67bcc0;
-    background-color: #dbeef0;
-    color: #1d1d1f;
-    padding: 5px;
-}
-
-QPushButton:disabled {
-    background-color: #eeeeee;
-    border: 2px solid #9e9e9e;
-    color: #333333;
+    background-color: #FFFFFF;
+    color: #3D5A80;
+    border: 1px solid #DFE6ED;
+    border-radius: 18px;
+    padding: 12px 24px;
+    font-weight: bold;
+    /* Soft shadow look */
+    border-bottom: 3px solid #DFE6ED;
+    border-right: 2px solid #DFE6ED;
 }
 
 QPushButton:hover {
-    border: 2px solid #1d1d1f;
-    background-color: #67bcc0;
+    background-color: #F8F9FA;
+    border-color: #3D5A80;
+    margin-top: 1px;
+    margin-left: 1px;
+    border-bottom: 2px solid #DFE6ED;
 }
 
 QPushButton:pressed {
-    background-color: #53d4dc;
-}
-
-QPushButton:pressed {
-    background-color: #53d4dc;
+    background-color: #DFE6ED;
+    border-bottom: 1px solid #DFE6ED;
+    margin-top: 3px;
 }
 
 QPushButton#start_recording_button {
-    font-size: 16px;
-    background-color: #ce7076;
-    border: 2px solid #333333;
-    padding: 10px;
-    border-radius: 10px;
-    width: 250px;
+    background-color: #EE6C4D;
+    color: #FFFFFF;
+    border: none;
+    font-size: 18px;
+    border-bottom: 4px solid #D14D33;
 }
 
 QPushButton#start_recording_button:hover {
-    border: 2px solid #cb2c34;
-}
-
-QPushButton#start_recording_button:disabled {
-    background-color: #8c7474;
-    color: #555555;
-}
-
-QPushButton#stop_recording_button {
-    font-size: 14px;
-    background-color: #eeeeee;
-}
-
-QPushButton#stop_recording_button:enabled {
-    border: 3px solid #d95158;
-    background-color: #eeeeee;
-}
-
-QPushButton#stop_recording_button:hover {
-    border: 3px solid #1d1d1f;
-    background-color: #eeeeee;
-}
-
-QPushButton#stop_recording_button:disabled {
-    color: #555555;
+    background-color: #F07B5E;
 }
 
 QPushButton#process_motion_capture_button,
 QPushButton#export_to_blender_button {
-    font-size: 18px;
-    background-color: #67bcc0;
-    border: 2px solid #333333;
+    background-color: #3D5A80;
+    color: #FFFFFF;
+    border-bottom: 4px solid #2B4162;
 }
 
-QPushButton#process_motion_capture_button:hover,
-QPushButton#export_to_blender_button:hover {
-    border: 2px solid #398588;
+/* Minimalist Inputs */
+QLineEdit {
+    background-color: #FFFFFF;
+    border: 2px solid #E1E8EE;
+    border-radius: 12px;
+    padding: 8px 15px;
+    color: #2D3436;
 }
 
-QPushButton#continue_unchanged_button {
-    background-color: #dbeef0f9;
-    border: 2px solid #67bcc0;
-    color: #333333;
+QLineEdit:focus {
+    border: 2px solid #3D5A80;
 }
 
-QPushButton#continue_unchanged_button:hover {
-    border: 2px solid #1d1d1f;
-    background-color: #67bcc0;
-}
-
-WelcomeScreenButton {
-    border: 2px solid #333333;
-    background-color: #67bcc0;
-    color: #1d1d1f;
-    font-size: 24px;
+/* Modern TreeView */
+QTreeView {
+    background-color: #FFFFFF;
+    border: none;
     border-radius: 20px;
     padding: 10px;
-    min-height: auto;
+    outline: none;
 }
 
-WelcomeScreenButton:hover {
-    border: 2px solid #398588;
-}
-
-WelcomeScreenButton[recommended_next=true] {
-    background-color: #d95158;
-    color: #f5f5f7;
-}
-
-WelcomeScreenButton[recommended_next=true]:hover {
-    border: 2px solid #a1232a;
-}
-
-QLabel {
-    font-size: 14px;
-    color: #333333;
-}
-
-QTreeView QLabel {
-    color: #1d1d1f;
-}
-
-QLabel:disabled {
-    color: #e0e0e0;
-}
-
-QLineEdit {
-    border: 1px solid #333333;
-    border-radius: 4px;
-    padding: 0 8px;
-    color: #333333;
-    background-color: #f5f5f7;
-}
-
-QLineEdit:disabled {
-    border: 1px solid #bdbdbd;
-    color: #333333;
-    background-color: #e0e0e0;
-}
-
-QTreeView {
-    background-color: #eeeeee;
-    color: #1d1d1f;
-    font-family: "Roboto", sans-serif;
-    font-size: 12px;
-}
-
-QTreeView::item:has-children {
-    background-color: #e0e0e0;
-    color: #1d1d1f;
-    border-bottom: 1px solid #bdbdbd;
-}
-
-QTreeView::item:selected,
-QTreeView::item:hover {
-    background-color: #f6e0f5;
-    color: #333333;
-}
-
-LogViewWidget {
-    background-color: #263238;
-    color: #f5f5f7;
-    font-family: "Roboto", sans-serif;
-    font-size: 12px;
+QTreeView::item {
     padding: 8px;
+    border-radius: 10px;
 }
 
-QDialog {
-    background-color: #f5f5f5;
+QTreeView::item:selected {
+    background-color: #E1E8EE;
+    color: #3D5A80;
 }
 
-QListWidget {
-    background-color: #f5f5f5;
+/* Log View - Minimalist Terminal */
+LogViewWidget {
+    background-color: #2D3436;
+    color: #ADBAC7;
+    border-radius: 15px;
+    font-family: 'Consolas', monospace;
+    font-size: 13px;
+}
+
+/* ScrollBar - Thin and Clean */
+QScrollBar:vertical {
+    border: none;
+    background: transparent;
+    width: 6px;
+}
+
+QScrollBar::handle:vertical {
+    background: #B2BEC3;
+    border-radius: 3px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background: #636E72;
 }

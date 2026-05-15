@@ -2,6 +2,8 @@ import logging
 from pathlib import Path
 from typing import Union
 
+import freemocap
+
 import requests
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
@@ -11,6 +13,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
     QHBoxLayout,
+    QGridLayout,
 )
 from packaging import version
 
@@ -34,8 +37,9 @@ logger = logging.getLogger(__name__)
 class WelcomeScreenButton(QPushButton):
     def __init__(self, text: str, parent: QWidget = None):
         super().__init__(text, parent=parent)
-        self.setFixedHeight(50)
-        self.setFixedWidth(400)
+        self.setMinimumHeight(60)
+        self.setMinimumWidth(250)
+        self.setCursor(Qt.PointingHandCursor)
 
 
 class HomeWidget(QWidget):
@@ -57,28 +61,30 @@ class HomeWidget(QWidget):
         self._welcome_to_freemocap_title_widget = self._welcome_to_freemocap_title()
         self._layout.addWidget(self._welcome_to_freemocap_title_widget)
 
-        self._new_session_buttons_layout = QHBoxLayout()
-        self._new_session_buttons_layout.addStretch(1)
-
+        # Centered Grid for Buttons
+        button_container = QWidget()
+        button_grid = QGridLayout(button_container)
+        button_grid.setSpacing(20)
+        
         self._create_new_session_button = WelcomeScreenButton(f"{CREATE_NEW_RECORDING_ACTION_NAME}")
         self._create_new_session_button.clicked.connect(actions.create_new_recording_action.trigger)
-        self._create_new_session_button.setProperty("recommended_next", True)
-        self._new_session_buttons_layout.addWidget(self._create_new_session_button)
+        self._create_new_session_button.setObjectName("start_recording_button")
+        button_grid.addWidget(self._create_new_session_button, 0, 0)
 
         self._live_motion_capture_button = WelcomeScreenButton(f"{LIVE_MOTION_CAPTURE_ACTION_NAME}")
         self._live_motion_capture_button.clicked.connect(actions.live_motion_capture_action.trigger)
-        self._new_session_buttons_layout.addWidget(self._live_motion_capture_button)
-
-        self._new_session_buttons_layout.addStretch(1)
-        self._layout.addLayout(self._new_session_buttons_layout)
+        button_grid.addWidget(self._live_motion_capture_button, 0, 1)
 
         self._load_existing_session_button = WelcomeScreenButton(f"{LOAD_RECORDING_ACTION_NAME}")
         self._load_existing_session_button.clicked.connect(actions.load_existing_recording_action.trigger)
-        self._layout.addWidget(self._load_existing_session_button, alignment=Qt.AlignmentFlag.AlignCenter)
+        button_grid.addWidget(self._load_existing_session_button, 1, 0)
 
         self._import_videos_button = WelcomeScreenButton(f"{IMPORT_VIDEOS_ACTION_NAME}")
         self._import_videos_button.clicked.connect(actions.import_videos_action.trigger)
-        self._layout.addWidget(self._import_videos_button, alignment=Qt.AlignmentFlag.AlignCenter)
+        button_grid.addWidget(self._import_videos_button, 1, 1)
+
+        self._layout.addWidget(button_container, alignment=Qt.AlignmentFlag.AlignCenter)
+        self._layout.addStretch(2)
 
         self._create_user_info_consent_checkbox()
 
@@ -111,7 +117,7 @@ class HomeWidget(QWidget):
             tooltip_string = f"Your version of Military Drill AI ({freemocap.__version__}) is up to date! (latest: {self.check_for_latest_version()})"
         version_label = QLabel(version_label_string)
         version_label.setAlignment(Qt.AlignmentFlag.AlignRight)
-        version_label.setStyleSheet("font-size: 12px;color: #777777")
+        version_label.setStyleSheet("font-size: 12px; color: #4F6D7A;")
         version_label.setOpenExternalLinks(True)
         version_label.setToolTip(tooltip_string)
 
@@ -141,25 +147,25 @@ class HomeWidget(QWidget):
         hbox = QHBoxLayout()
         self._layout.addLayout(hbox)
         hbox.addStretch(1)
-        privacy_policy_link_string = f'<a href="{DOCUMENTATION_PRIVACY_POLICY_URL}" style="color: #333333;">privacy policy</a>'
+        privacy_policy_link_string = f'<a href="{DOCUMENTATION_PRIVACY_POLICY_URL}" style="color: #98C1D9;">privacy policy</a>'
         privacy_policy_link_label = QLabel(privacy_policy_link_string)
         privacy_policy_link_label.setOpenExternalLinks(True)
         hbox.addWidget(privacy_policy_link_label)
-        docs_string = f'<a href="{DOCUMENTATION_HOME}" style="color: #333333;">docs</a>'
+        docs_string = f'<a href="{DOCUMENTATION_HOME}" style="color: #98C1D9;">docs</a>'
         docs_string = QLabel(docs_string)
         docs_string.setOpenExternalLinks(True)
         hbox.addWidget(docs_string, alignment=Qt.AlignmentFlag.AlignCenter)
-        feedback_string = '<a href="https://forms.gle/AguGxQAJGXxaJbXdA" style="color: #333333;">feedback</a>'
+        feedback_string = '<a href="https://forms.gle/AguGxQAJGXxaJbXdA" style="color: #98C1D9;">feedback</a>'
         feedback_string = QLabel(feedback_string)
         feedback_string.setOpenExternalLinks(True)
         hbox.addWidget(feedback_string, alignment=Qt.AlignmentFlag.AlignRight)
 
-        discord_string = '<a href="https://discord.gg/P2nyraRYjb" style="color: #333333;">community</a>'
+        discord_string = '<a href="https://discord.gg/P2nyraRYjb" style="color: #98C1D9;">community</a>'
         discord_string = QLabel(discord_string)
         discord_string.setOpenExternalLinks(True)
         hbox.addWidget(discord_string, alignment=Qt.AlignmentFlag.AlignRight)
 
-        donate_string = '<a href="https://freemocap.org/about-us.html#donate" style="color: #333333;">donate ❤️</a>'
+        donate_string = '<a href="https://freemocap.org/about-us.html#donate" style="color: #98C1D9;">donate ❤️</a>'
         donate_string = QLabel(donate_string)
         donate_string.setOpenExternalLinks(True)
         hbox.addWidget(donate_string, alignment=Qt.AlignmentFlag.AlignRight)
@@ -188,9 +194,10 @@ class HomeWidget(QWidget):
     def _welcome_to_freemocap_title(self):
         logger.debug("Creating `welcome to Military Drill AI` layout")
 
-        session_title_label = QLabel("Welcome  to  Military Drill AI!")
+        session_title_label = QLabel("WELCOME TO MILITARY DRILL AI")
         session_title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        session_title_label.setStyleSheet("font-size: 54px;")
+        session_title_label.setStyleSheet("font-size: 32px; font-weight: bold; color: #3D5A80; letter-spacing: 2px;")
+        session_title_label.setContentsMargins(0, 20, 0, 40)
 
         return session_title_label
 

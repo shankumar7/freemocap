@@ -89,7 +89,7 @@ class CentralTabWidget(QTabWidget):
         layout.addWidget(lag_note_label)
         layout.setAlignment(Qt.AlignmentFlag.AlignBottom)
         self._camera_view_layout.addLayout(layout)
-        self._camera_view_layout.setContentsMargins(20, 0, 20, 0)
+        self._camera_view_layout.setContentsMargins(30, 20, 30, 20)
 
     def _create_live_capture_tab(self, tab_widget: QTabWidget):
         logger.debug("Creating live capture tab")

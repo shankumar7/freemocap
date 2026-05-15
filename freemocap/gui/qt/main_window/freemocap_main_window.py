@@ -105,6 +105,7 @@ class MainWindow(QMainWindow):
         logger.info("Initializing Military Drill AI MainWindow")
 
         self.setMinimumSize(1280, 720)
+        self.showMaximized()
         self.setWindowIcon(QIcon(str(Path(freemocap.__file__).parent / "assets" / "military_drill_logo.png")))
         self.setWindowTitle("Military Drill AI \U0001f4aa \U00002728")
 

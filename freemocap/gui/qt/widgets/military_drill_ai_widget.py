@@ -12,13 +12,15 @@ class MilitaryDrillAiWidget(QWidget):
         super().__init__(parent)
         
         self.layout = QHBoxLayout()
+        self.layout.setContentsMargins(30, 30, 30, 30)
+        self.layout.setSpacing(30)
         self.setLayout(self.layout)
         
         # --- Left Side: Video Viewport ---
         self.viewport_layout = QVBoxLayout()
         self.video_label = QLabel("Click 'Start Camera' to begin pipeline")
         self.video_label.setAlignment(Qt.AlignCenter)
-        self.video_label.setStyleSheet("background-color: #000000; border: 1px solid #3d3d3d;")
+        self.video_label.setStyleSheet("background-color: #000000; border: 2px solid #3D5A80; border-radius: 4px;")
         self.video_label.setMinimumSize(640, 480)
         self.video_label.mousePressEvent = self.on_viewport_click
         self.viewport_layout.addWidget(self.video_label)

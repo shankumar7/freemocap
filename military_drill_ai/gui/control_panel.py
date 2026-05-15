@@ -6,10 +6,13 @@ class ControlPanel(QWidget):
         super().__init__(parent)
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
+        self.layout.setSpacing(20)
+        self.layout.setContentsMargins(10, 10, 10, 10)
         
         # Camera Settings
         self.camera_group = QGroupBox("Camera Controls")
         self.camera_layout = QVBoxLayout()
+        self.camera_layout.setSpacing(10)
         self.camera_group.setLayout(self.camera_layout)
         
         source_layout = QHBoxLayout()
@@ -29,11 +32,11 @@ class ControlPanel(QWidget):
         # Tracking & Calibration Settings
         self.tracking_group = QGroupBox("Military Drill AI")
         self.tracking_layout = QVBoxLayout()
+        self.tracking_layout.setSpacing(10)
         self.tracking_group.setLayout(self.tracking_layout)
         
         self.btn_calibrate = QPushButton("Enable 15cm Scale Calibration")
         self.btn_calibrate.setCheckable(True)
-        self.btn_calibrate.setStyleSheet("QPushButton:checked { background-color: #2b5c2b; }")
         
         self.tracking_layout.addWidget(self.btn_calibrate)
         

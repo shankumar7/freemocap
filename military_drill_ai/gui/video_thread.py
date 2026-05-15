@@ -100,8 +100,24 @@ class VideoThread(QThread):
                 
             self.current_frame_shape = frame.shape
 
+            # Optimization: Downscale frame for AI if it's too large (e.g. > 480p)
+            # This significantly reduces latency in YOLO and MediaPipe
+            h, w = frame.shape[:2]
+            target_h = 480
+            scale = target_h / h
+            if scale < 1.0:
+                frame_ai = cv2.resize(frame, (int(w * scale), target_h))
+            else:
+                frame_ai = frame
+            
             # 1. Tracking (YOLO + ByteTrack)
-            tracks = self.tracker.track_frame(frame)
+            tracks = self.tracker.track_frame(frame_ai)
+            
+            # Rescale tracks back to original frame size
+            if scale < 1.0:
+                for i in range(len(tracks)):
+                    tracks[i][0:4] = tracks[i][0:4] / scale
+            
             frame_out = self.tracker.draw_tracks(frame, tracks)
             
             # 2. Pose Estimation (MediaPipe)

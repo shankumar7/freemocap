@@ -91,6 +91,17 @@ class MilitaryDrillAiWidget(QWidget):
             text += f"  - Leg Dist: {data.get('leg_distance', 'N/A')}\n"
             text += "-" * 20 + "\n"
         self.metrics_display.setText(text)
+
+    @Slot(dict)
+    def update_3d_view(self, pose_3d_data):
+        """Updates the 3D viewer if the toggle is enabled."""
+        if not hasattr(self, '_3d_frame_counter'):
+            self._3d_frame_counter = 0
+            
+        self._3d_frame_counter += 1
+        
+        if self.control_panel.btn_toggle_3d.isChecked() and self._3d_frame_counter % 3 == 0:
+            self.live_3d_viewer.update_landmarks(pose_3d_data)
         
     def convert_cv_qt(self, cv_img):
         """Convert from an opencv image to QPixmap."""
@@ -136,7 +147,7 @@ class MilitaryDrillAiWidget(QWidget):
         self.video_thread.change_pixmap_signal.connect(self.update_image)
         self.video_thread.status_signal.connect(self.update_log)
         self.video_thread.metrics_signal.connect(self.update_metrics)
-        self.video_thread.pose_3d_signal.connect(self.live_3d_viewer.update_landmarks)
+        self.video_thread.pose_3d_signal.connect(self.update_3d_view)
         
         self.video_thread.start()
 

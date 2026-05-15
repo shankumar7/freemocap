@@ -112,13 +112,16 @@ class VideoThread(QThread):
             # 4. Integrate Vive Tracker Data if active
             if self.vive_client and self.vive_client.is_initialized:
                 tracker_data = self.vive_client.poll_poses()
-                y_offset = 30
-                for serial, data in tracker_data.items():
-                    pos = data['position']
-                    cls = data['device_class']
-                    text = f"{cls} [{serial}]: X:{pos[0]:.2f} Y:{pos[1]:.2f} Z:{pos[2]:.2f}"
-                    cv2.putText(frame_out, text, (10, y_offset), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
-                    y_offset += 30
+                if tracker_data:
+                    y_offset = 30
+                    for serial, data in tracker_data.items():
+                        pos = data['position']
+                        cls = data['device_class']
+                        text = f"{cls} [{serial}]: X:{pos[0]:.2f} Y:{pos[1]:.2f} Z:{pos[2]:.2f}"
+                        cv2.putText(frame_out, text, (10, y_offset), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
+                        y_offset += 30
+                else:
+                    cv2.putText(frame_out, "VR Connected, but 0 devices tracking (Wake up headset!)", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
                     
                 if self.trigger_vr_calibration:
                     self._handle_vr_calibration(tracker_data, posture_data)

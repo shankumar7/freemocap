@@ -69,11 +69,7 @@ class HomeWidget(QWidget):
         self._create_new_session_button = WelcomeScreenButton(f"{CREATE_NEW_RECORDING_ACTION_NAME}")
         self._create_new_session_button.clicked.connect(actions.create_new_recording_action.trigger)
         self._create_new_session_button.setObjectName("start_recording_button")
-        button_grid.addWidget(self._create_new_session_button, 0, 0)
-
-        self._live_motion_capture_button = WelcomeScreenButton(f"{LIVE_MOTION_CAPTURE_ACTION_NAME}")
-        self._live_motion_capture_button.clicked.connect(actions.live_motion_capture_action.trigger)
-        button_grid.addWidget(self._live_motion_capture_button, 0, 1)
+        button_grid.addWidget(self._create_new_session_button, 0, 0, 1, 2) # Span 2 columns
 
         self._load_existing_session_button = WelcomeScreenButton(f"{LOAD_RECORDING_ACTION_NAME}")
         self._load_existing_session_button.clicked.connect(actions.load_existing_recording_action.trigger)

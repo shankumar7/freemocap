@@ -1,10 +1,11 @@
 import cv2
 import numpy as np
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel
+from PySide6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel, QGroupBox
 from PySide6.QtCore import Qt, Slot
 from PySide6.QtGui import QImage, QPixmap
 
 from military_drill_ai.gui.control_panel import ControlPanel
+from freemocap.gui.qt.widgets.live_3d_viewer import Live3DViewer
 from military_drill_ai.gui.video_thread import VideoThread
 
 class MilitaryDrillAiWidget(QWidget):
@@ -16,19 +17,47 @@ class MilitaryDrillAiWidget(QWidget):
         self.layout.setSpacing(30)
         self.setLayout(self.layout)
         
-        # --- Left Side: Video Viewport ---
-        self.viewport_layout = QVBoxLayout()
+        # --- Left Side: Viewports (2D + 3D) ---
+        self.viewports_container = QWidget()
+        self.viewports_layout = QHBoxLayout(self.viewports_container)
+        self.viewports_layout.setContentsMargins(0, 0, 0, 0)
+        self.viewports_layout.setSpacing(20)
+        
+        # 2D View
         self.video_label = QLabel("Click 'Start Camera' to begin pipeline")
         self.video_label.setAlignment(Qt.AlignCenter)
-        self.video_label.setStyleSheet("background-color: #000000; border: 2px solid #3D5A80; border-radius: 4px;")
-        self.video_label.setMinimumSize(640, 480)
+        self.video_label.setStyleSheet("background-color: #000000; border: 2px solid #3D5A80; border-radius: 15px;")
+        self.video_label.setMinimumSize(480, 360)
         self.video_label.mousePressEvent = self.on_viewport_click
-        self.viewport_layout.addWidget(self.video_label)
-        self.layout.addLayout(self.viewport_layout, stretch=3)
+        self.viewports_layout.addWidget(self.video_label, stretch=1)
         
-        # --- Right Side: Control Panel ---
+        # 3D View
+        self.live_3d_viewer = Live3DViewer()
+        self.live_3d_viewer.setMinimumSize(480, 360)
+        self.live_3d_viewer.setStyleSheet("border: 2px solid #3D5A80; border-radius: 15px; background-color: #FFFFFF;")
+        self.viewports_layout.addWidget(self.live_3d_viewer, stretch=1)
+        
+        self.layout.addWidget(self.viewports_container, stretch=4)
+        
+        # --- Right Side: Analytics & Control ---
+        self.right_panel = QVBoxLayout()
+        
+        # Metrics Display
+        self.metrics_group = QGroupBox("Live Cadet Analytics")
+        self.metrics_layout = QVBoxLayout()
+        self.metrics_group.setLayout(self.metrics_layout)
+        self.metrics_display = QLabel("No cadets detected.")
+        self.metrics_display.setAlignment(Qt.AlignTop | Qt.AlignLeft)
+        self.metrics_display.setStyleSheet("font-family: 'Consolas'; font-size: 14px; color: #3D5A80;")
+        self.metrics_layout.addWidget(self.metrics_display)
+        
+        self.right_panel.addWidget(self.metrics_group, stretch=2)
+        
+        # Control Panel
         self.control_panel = ControlPanel()
-        self.layout.addWidget(self.control_panel, stretch=1)
+        self.right_panel.addWidget(self.control_panel, stretch=1)
+        
+        self.layout.addLayout(self.right_panel, stretch=1)
         
         # Modules
         self.video_thread = None
@@ -46,6 +75,22 @@ class MilitaryDrillAiWidget(QWidget):
     @Slot(str)
     def update_log(self, text):
         self.control_panel.log_message(text)
+
+    @Slot(dict)
+    def update_metrics(self, metrics_data):
+        """Updates the metrics panel with real-time cadet data."""
+        if not metrics_data:
+            self.metrics_display.setText("No cadets detected.")
+            return
+            
+        text = ""
+        for c_id, data in metrics_data.items():
+            text += f"CADET ID: {c_id}\n"
+            text += f"  - Height: {data.get('height', 'N/A')}\n"
+            text += f"  - Angle:  {data.get('angle', 'N/A')}\n"
+            text += f"  - Leg Dist: {data.get('leg_distance', 'N/A')}\n"
+            text += "-" * 20 + "\n"
+        self.metrics_display.setText(text)
         
     def convert_cv_qt(self, cv_img):
         """Convert from an opencv image to QPixmap."""
@@ -90,6 +135,8 @@ class MilitaryDrillAiWidget(QWidget):
         # Setup signals
         self.video_thread.change_pixmap_signal.connect(self.update_image)
         self.video_thread.status_signal.connect(self.update_log)
+        self.video_thread.metrics_signal.connect(self.update_metrics)
+        self.video_thread.pose_3d_signal.connect(self.live_3d_viewer.update_landmarks)
         
         self.video_thread.start()
 
@@ -104,6 +151,10 @@ class MilitaryDrillAiWidget(QWidget):
             self.video_label.clear()
             self.video_label.setText("Camera Stopped")
             
+    @property
+    def blender_button(self):
+        return self.control_panel.btn_blender
+
     def close(self):
         self.stop_camera()
         super().close()

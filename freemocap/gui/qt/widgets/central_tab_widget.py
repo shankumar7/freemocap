@@ -44,11 +44,8 @@ class CentralTabWidget(QTabWidget):
 
         self._create_welcome_tab(self)
         self._create_military_drill_ai_tab(self)
-        self._create_skellycam_view_tab(self)
-        self._create_live_capture_tab(self)
         self._create_skelly_viewer_tab(self)
         self._create_directory_view_tab(self)
-        self._create_active_recording_info_tab(self)
 
     def set_welcome_tab_enabled(self, enabled: bool):
         self.setTabEnabled(0, enabled)
@@ -110,4 +107,4 @@ class CentralTabWidget(QTabWidget):
 
     def _create_military_drill_ai_tab(self, tab_widget: QTabWidget):
         logger.debug("Creating military drill ai tab")
-        tab_widget.addTab(self._military_drill_ai_widget, "Military Drill AI")
+        tab_widget.addTab(self._military_drill_ai_widget, "Cadet Monitoring & Analytics")

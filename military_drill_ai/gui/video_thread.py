@@ -55,12 +55,15 @@ class FrameGrabber:
 class VideoThread(QThread):
     # Signals to communicate with the main GUI thread
     change_pixmap_signal = Signal(np.ndarray)
+    metrics_signal = Signal(dict)
+    pose_3d_signal = Signal(dict)
     status_signal = Signal(str)
     
     def __init__(self):
         super().__init__()
         self._run_flag = True
         self.video_source = "0"
+        self.show_skeleton = True
         self.calibration_clicks = []
         
         # We will initialize models when the thread starts
@@ -102,10 +105,10 @@ class VideoThread(QThread):
             frame_out = self.tracker.draw_tracks(frame, tracks)
             
             # 2. Pose Estimation (MediaPipe)
-            frame_out, posture_data = self.pose_estimator.estimate_and_draw(frame_out, tracks)
+            frame_out, posture_data = self.pose_estimator.estimate_and_draw(frame_out, tracks, draw_skeleton=self.show_skeleton)
             
             # 3. Analytics Engine
-            frame_out = self.analyzer.analyze_and_draw(frame_out, posture_data, tracks)
+            frame_out, metrics_data = self.analyzer.analyze_and_draw(frame_out, posture_data, tracks)
             
             # 4. Calibration Logic
             if len(self.calibration_clicks) == 2:
@@ -115,8 +118,13 @@ class VideoThread(QThread):
             for click in self.calibration_clicks:
                 cv2.circle(frame_out, click, 5, (0, 0, 255), -1)
 
-            # Send frame to GUI
+            # Send frame and metrics to GUI
             self.change_pixmap_signal.emit(frame_out)
+            self.metrics_signal.emit(metrics_data)
+            
+            # Extract 3D data for visualization
+            pose_3d_data = {c_id: data.get('world_landmarks') for c_id, data in posture_data.items() if 'world_landmarks' in data}
+            self.pose_3d_signal.emit(pose_3d_data)
             
             # Small sleep to yield to GUI thread
             time.sleep(0.01)

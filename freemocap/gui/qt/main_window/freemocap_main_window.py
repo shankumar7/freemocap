@@ -237,6 +237,7 @@ class MainWindow(QMainWindow):
         self._home_widget = HomeWidget(actions=self._actions, gui_state=self._gui_state, parent=self)
         self._live_capture_widget = LiveCaptureWidget(camera_index=0, parent=self)
         self._military_drill_ai_widget = MilitaryDrillAiWidget(parent=self)
+        self._military_drill_ai_widget.blender_button.clicked.connect(self._export_active_recording_to_blender)
 
         self._skellycam_widget = SkellyCamWidget(
             self._create_new_synchronized_videos_folder,

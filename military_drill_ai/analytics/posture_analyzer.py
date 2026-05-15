@@ -41,8 +41,10 @@ class PostureAnalyzer:
     def analyze_and_draw(self, frame, posture_data, tracks):
         """
         Calculates hybrid metrics and draws them on the frame.
+        Returns the processed frame and a dictionary of metrics per cadet.
         """
         out_frame = frame.copy()
+        all_cadet_metrics = {}
         
         for track in tracks:
             x1, y1, x2, y2, conf, cls, cadet_id = track
@@ -50,7 +52,8 @@ class PostureAnalyzer:
                 continue
                 
             data = posture_data[cadet_id]
-            metrics = []
+            metrics_labels = []
+            metrics_values = {}
             
             # 1. DEPTH-INVARIANT HEIGHT (Anchored to 15cm Scale Calibration)
             w_nose = data.get('world_nose')
@@ -70,34 +73,51 @@ class PostureAnalyzer:
                     height_in_feet = total_world_height_m * config.WORLD_TO_REAL_RATIO
                     feet = int(height_in_feet)
                     inches = int((height_in_feet - feet) * 12)
-                    metrics.append(f"Calibrated 3D Height: {feet}'{inches}\"")
+                    metrics_labels.append(f"Height: {feet}'{inches}\"")
+                    metrics_values['height'] = f"{feet}'{inches}\""
                 else:
                     height_in_feet = total_world_height_m * 3.28084
                     feet = int(height_in_feet)
                     inches = int((height_in_feet - feet) * 12)
-                    metrics.append(f"True 3D Height: {feet}'{inches}\" (Uncalibrated)")
+                    metrics_labels.append(f"Height: {feet}'{inches}\" (Uncalib)")
+                    metrics_values['height'] = f"{feet}'{inches}\"*"
                 
-            # 2. VISUAL SALUTE ANGLE (Using 2D Pixels to match the 15cm physical ruler)
+            # 2. VISUAL SALUTE ANGLE
             r_shoulder = data.get('right_shoulder')
             r_elbow = data.get('right_elbow')
             r_wrist = data.get('right_wrist')
             
             if r_shoulder and r_elbow and r_wrist:
                 elbow_angle = self.calculate_2d_angle(r_shoulder, r_elbow, r_wrist)
-                
                 if elbow_angle is not None:
-                    # Append exact visual angle to metrics
-                    metrics.append(f"Visual Angle: {int(elbow_angle)} deg")
-                    
-                    # Draw visual arc around the elbow
+                    metrics_labels.append(f"Angle: {int(elbow_angle)} deg")
+                    metrics_values['angle'] = f"{int(elbow_angle)}°"
                     cv2.putText(out_frame, f"{int(elbow_angle)}", 
                                 (r_elbow[0] + 15, r_elbow[1]), 
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
-                                
+
+            # 3. LEG DISTANCE (3D World Space)
+            if w_l_ankle and w_r_ankle:
+                leg_dist_m = self.calculate_3d_distance(w_l_ankle, w_r_ankle)
+                if hasattr(config, 'WORLD_TO_REAL_RATIO') and config.WORLD_TO_REAL_RATIO > 0:
+                    # Convert meters to inches (approx based on ratio)
+                    # WORLD_TO_REAL_RATIO is height_feet / world_height_meters
+                    # So ratio * 12 gives inches / meter
+                    leg_dist_inches = leg_dist_m * (config.WORLD_TO_REAL_RATIO * 12 / 3.28084)
+                    metrics_labels.append(f"Leg Dist: {int(leg_dist_inches)} in")
+                    metrics_values['leg_distance'] = f"{int(leg_dist_inches)} in"
+                else:
+                    leg_dist_cm = leg_dist_m * 100
+                    metrics_labels.append(f"Leg Dist: {int(leg_dist_cm)} cm (Rel)")
+                    metrics_values['leg_distance'] = f"{int(leg_dist_cm)} cm"
+
+            if metrics_values:
+                all_cadet_metrics[cadet_id] = metrics_values
+                    
             # Draw all metrics slightly above the bounding box
             y_offset = max(y1 - 30, 0)
-            for i, metric in enumerate(metrics):
-                cv2.putText(out_frame, metric, (int(x1), int(y_offset) - (i * 20)), 
+            for i, label in enumerate(metrics_labels):
+                cv2.putText(out_frame, label, (int(x1), int(y_offset) - (i * 20)), 
                             cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
                             
-        return out_frame
+        return out_frame, all_cadet_metrics

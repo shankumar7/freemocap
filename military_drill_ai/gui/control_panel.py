@@ -38,7 +38,13 @@ class ControlPanel(QWidget):
         self.btn_calibrate = QPushButton("Enable 15cm Scale Calibration")
         self.btn_calibrate.setCheckable(True)
         
+        self.btn_blender = QPushButton("Export to Blender")
+        self.btn_toggle_3d = QPushButton("3D Skeleton View")
+        self.btn_toggle_3d.setCheckable(True)
+        
         self.tracking_layout.addWidget(self.btn_calibrate)
+        self.tracking_layout.addWidget(self.btn_toggle_3d)
+        self.tracking_layout.addWidget(self.btn_blender)
         
         # Status Log
         self.log_group = QGroupBox("System Log")

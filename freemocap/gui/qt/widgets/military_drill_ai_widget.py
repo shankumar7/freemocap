@@ -65,6 +65,9 @@ class MilitaryDrillAiWidget(QWidget):
         # Connections
         self.control_panel.btn_start.clicked.connect(self.start_camera)
         self.control_panel.btn_stop.clicked.connect(self.stop_camera)
+        
+        # Default state
+        self.control_panel.btn_toggle_3d.setChecked(True)
 
     @Slot(np.ndarray)
     def update_image(self, cv_img):
@@ -95,12 +98,7 @@ class MilitaryDrillAiWidget(QWidget):
     @Slot(dict)
     def update_3d_view(self, pose_3d_data):
         """Updates the 3D viewer if the toggle is enabled."""
-        if not hasattr(self, '_3d_frame_counter'):
-            self._3d_frame_counter = 0
-            
-        self._3d_frame_counter += 1
-        
-        if self.control_panel.btn_toggle_3d.isChecked() and self._3d_frame_counter % 3 == 0:
+        if self.control_panel.btn_toggle_3d.isChecked():
             self.live_3d_viewer.update_landmarks(pose_3d_data)
         
     def convert_cv_qt(self, cv_img):

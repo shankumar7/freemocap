@@ -5,22 +5,20 @@ import mediapipe as mp
 class MediaPipeEstimator:
     def __init__(self):
         """
-        Initializes MediaPipe Holistic for full-body and finger tracking.
-        We use a dictionary to maintain a separate Holistic tracker for each Cadet ID.
+        Initializes MediaPipe Pose for robust skeleton tracking.
+        We use ROI-based processing for maximum accuracy and speed.
         """
-        self.mp_holistic = mp.solutions.holistic
+        self.mp_pose = mp.solutions.pose
         self.mp_drawing = mp.solutions.drawing_utils
         self.mp_drawing_styles = mp.solutions.drawing_styles
-        self.trackers = {} # cadet_id -> Holistic instance
+        self.trackers = {} # cadet_id -> Pose instance
 
     def _get_tracker(self, cadet_id):
         if cadet_id not in self.trackers:
-            self.trackers[cadet_id] = self.mp_holistic.Holistic(
+            self.trackers[cadet_id] = self.mp_pose.Pose(
                 static_image_mode=False,
-                model_complexity=0,
+                model_complexity=1,
                 smooth_landmarks=True,
-                enable_segmentation=False,
-                refine_face_landmarks=False,
                 min_detection_confidence=0.3,
                 min_tracking_confidence=0.3
             )
@@ -28,99 +26,86 @@ class MediaPipeEstimator:
 
     def estimate_and_draw(self, frame, tracks, draw_skeleton=True):
         """
-        Extracts full body and finger keypoints using full-frame masking.
-        This guarantees flawless aspect ratios and native MediaPipe accuracy.
+        Processes each cadet ROI through MediaPipe Pose.
         """
         out_frame = frame.copy()
-        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        frame_h, frame_w, _ = frame.shape
         
         active_ids = set()
         posture_data = {}
-        frame_h, frame_w, _ = frame.shape
         
         for track in tracks:
             x1, y1, x2, y2, conf, cls, cadet_id = track
-            if cadet_id == -1:
-                continue
-                
+            if cadet_id == -1: continue
             active_ids.add(cadet_id)
+            
+            # 1. ROI Extraction with safety margins
+            w_box = x2 - x1
+            h_box = y2 - y1
+            margin = 0.2
+            
+            roi_x1 = max(0, int(x1 - w_box * margin))
+            roi_y1 = max(0, int(y1 - h_box * margin))
+            roi_x2 = min(frame_w, int(x2 + w_box * margin))
+            roi_y2 = min(frame_h, int(y2 + h_box * margin))
+            
+            roi = frame[roi_y1:roi_y2, roi_x1:roi_x2]
+            if roi.size == 0: continue
+            
+            roi_rgb = cv2.cvtColor(roi, cv2.COLOR_BGR2RGB)
             tracker = self._get_tracker(cadet_id)
+            results = tracker.process(roi_rgb)
             
-            # To completely eliminate distortion/hand-cropping, we run MediaPipe 
-            # on the FULL frame, but black out everything except this cadet's ROI.
-            margin_x = int((x2 - x1) * 0.4)
-            margin_y = int((y2 - y1) * 0.4)
-            
-            crop_x1 = max(0, int(x1) - margin_x)
-            crop_y1 = max(0, int(y1) - margin_y)
-            crop_x2 = min(frame_w, int(x2) + margin_x)
-            crop_y2 = min(frame_h, int(y2) + margin_y)
-            
-            # Create a blank mask and copy the cadet's pixels into it
-            masked_frame = np.zeros_like(frame_rgb)
-            masked_frame[crop_y1:crop_y2, crop_x1:crop_x2] = frame_rgb[crop_y1:crop_y2, crop_x1:crop_x2]
-            
-            # Process the masked full-frame
-            results = tracker.process(masked_frame)
-            
-            # Extract landmarks for Analytics Engine
-            cadet_posture = {}
             if results.pose_landmarks:
-                def get_px(landmark):
-                    if not landmark or getattr(landmark, 'visibility', 0) < 0.1:
-                        return None
-                    # Coordinates are normalized 0.0 to 1.0 of the FULL frame!
-                    return (int(landmark.x * frame_w), int(landmark.y * frame_h))
+                roi_h, roi_w = roi.shape[:2]
                 
-                landmarks = results.pose_landmarks.landmark
-                mp_pose = mp.solutions.pose
+                # Helper to translate ROI landmarks to global pixels
+                def get_global_px(lm):
+                    if not lm or getattr(lm, 'visibility', 0) < 0.1: return None
+                    gx = int(roi_x1 + lm.x * roi_w)
+                    gy = int(roi_y1 + lm.y * roi_h)
+                    return (gx, gy)
                 
+                lms = results.pose_landmarks.landmark
                 cadet_posture = {
-                    'nose': get_px(landmarks[mp_pose.PoseLandmark.NOSE]),
-                    'right_shoulder': get_px(landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER]),
-                    'right_elbow': get_px(landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW]),
-                    'right_wrist': get_px(landmarks[mp_pose.PoseLandmark.RIGHT_WRIST]),
-                    'left_ankle': get_px(landmarks[mp_pose.PoseLandmark.LEFT_ANKLE]),
-                    'right_ankle': get_px(landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE])
+                    'nose': get_global_px(lms[self.mp_pose.PoseLandmark.NOSE]),
+                    'right_shoulder': get_global_px(lms[self.mp_pose.PoseLandmark.RIGHT_SHOULDER]),
+                    'right_elbow': get_global_px(lms[self.mp_pose.PoseLandmark.RIGHT_ELBOW]),
+                    'right_wrist': get_global_px(lms[self.mp_pose.PoseLandmark.RIGHT_WRIST]),
+                    'left_ankle': get_global_px(lms[self.mp_pose.PoseLandmark.LEFT_ANKLE]),
+                    'right_ankle': get_global_px(lms[self.mp_pose.PoseLandmark.RIGHT_ANKLE])
                 }
                 
-            if results.pose_world_landmarks:
-                def get_3d(landmark):
-                    if not landmark or getattr(landmark, 'visibility', 0) < 0.1:
-                        return None
-                    return (landmark.x, landmark.y, landmark.z)
+                # Store world landmarks for 3D View
+                if results.pose_world_landmarks:
+                    def get_3d(lm):
+                        if not lm or getattr(lm, 'visibility', 0) < 0.1: return None
+                        return (lm.x, lm.y, lm.z)
+                    cadet_posture['world_landmarks'] = [get_3d(lm) for lm in results.pose_world_landmarks.landmark]
                     
-                world_landmarks = results.pose_world_landmarks.landmark
-                cadet_posture['world_landmarks'] = [get_3d(lm) for lm in world_landmarks]
+                    # For metrics
+                    w_lms = results.pose_world_landmarks.landmark
+                    cadet_posture['world_nose'] = get_3d(w_lms[self.mp_pose.PoseLandmark.NOSE])
+                    cadet_posture['world_left_ankle'] = get_3d(w_lms[self.mp_pose.PoseLandmark.LEFT_ANKLE])
+                    cadet_posture['world_right_ankle'] = get_3d(w_lms[self.mp_pose.PoseLandmark.RIGHT_ANKLE])
                 
-                # Still keep specific ones for existing analytics if needed, or just use the list
-                mp_pose = mp.solutions.pose
-                cadet_posture['world_nose'] = get_3d(world_landmarks[mp_pose.PoseLandmark.NOSE])
-                cadet_posture['world_left_ankle'] = get_3d(world_landmarks[mp_pose.PoseLandmark.LEFT_ANKLE])
-                cadet_posture['world_right_ankle'] = get_3d(world_landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE])
-                
-            if cadet_posture:
                 posture_data[cadet_id] = cadet_posture
-            
-            # Draw using Native MediaPipe Utilities for flawless rendering
-            if draw_skeleton:
-                if results.pose_landmarks:
-                    self.mp_drawing.draw_landmarks(
-                        out_frame, results.pose_landmarks, self.mp_holistic.POSE_CONNECTIONS,
-                        landmark_drawing_spec=self.mp_drawing_styles.get_default_pose_landmarks_style()
-                    )
-                if results.left_hand_landmarks:
-                    self.mp_drawing.draw_landmarks(
-                        out_frame, results.left_hand_landmarks, self.mp_holistic.HAND_CONNECTIONS,
-                        landmark_drawing_spec=self.mp_drawing_styles.get_default_hand_landmarks_style()
-                    )
-                if results.right_hand_landmarks:
-                    self.mp_drawing.draw_landmarks(
-                        out_frame, results.right_hand_landmarks, self.mp_holistic.HAND_CONNECTIONS,
-                        landmark_drawing_spec=self.mp_drawing_styles.get_default_hand_landmarks_style()
-                    )
-            
-        # Clean up trackers for cadets who have left the frame
+                
+                # Draw skeleton on global frame
+                if draw_skeleton:
+                    # We create a temporary landmark list in global coords for drawing
+                    # However, mp_drawing works on normalized coords. 
+                    # So we convert back to global normalized.
+                    for conn in self.mp_pose.POSE_CONNECTIONS:
+                        p1_idx, p2_idx = conn
+                        p1 = get_global_px(lms[p1_idx])
+                        p2 = get_global_px(lms[p2_idx])
+                        if p1 and p2:
+                            cv2.line(out_frame, p1, p2, (255, 255, 255), 2)
+                            cv2.circle(out_frame, p1, 3, (0, 0, 255), -1)
+                            cv2.circle(out_frame, p2, 3, (0, 0, 255), -1)
+
+        # Cleanup
         dead_ids = set(self.trackers.keys()) - active_ids
         for d_id in dead_ids:
             self.trackers[d_id].close()
